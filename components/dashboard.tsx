@@ -1,7 +1,28 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, BellRing, ClipboardList, ShieldQuestion, Siren, Clock3, Radio, ChevronRight, MessageSquarePlus } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie } from "recharts";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BellRing,
+  ClipboardList,
+  ShieldQuestion,
+  Siren,
+  Clock3,
+  Radio,
+  ChevronRight,
+  MessageSquarePlus,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  PieChart,
+  Pie,
+} from "recharts";
 import { useApp } from "./provider";
 import { DataGate, HazardIcon, IncidentTable, PageTitle, relativeTime } from "./ui";
 import { IncidentMap } from "./maps/map";
@@ -9,18 +30,321 @@ import { hazards, label } from "@/lib/domain";
 const chartColors = ["#5ba7ff", "#eda85e", "#b29aff", "#5ad6c0"];
 export function Dashboard() {
   const { data, region, lastSynced } = useApp();
-  const incidents = data?.incidents.filter(item => region === "All districts" || item.district === region) || [];
-  const alerts = data?.alerts.filter(item => (region === "All districts" || item.district === region) && Date.parse(item.expiresAt) > Date.parse(lastSynced || "1970-01-01")) || [];
-  const active = incidents.filter(item => !["resolved", "closed"].includes(item.response));
-  const needsReview = incidents.filter(item => ["unverified", "under_review"].includes(item.verification));
-  const critical = active.filter(item => item.priority === "critical" || item.priority === "high");
-  const hazardData = hazards.map((hazard, i) => ({ name: label(hazard), count: incidents.filter(item => item.hazard === hazard).length, fill: chartColors[i] }));
-  const statusData = [{ name: "Awaiting response", value: active.filter(item => item.response === "new").length, color: "#eab56f" }, { name: "Assigned / in progress", value: active.filter(item => ["assigned", "in_progress"].includes(item.response)).length, color: "#5ba7ff" }, { name: "Resolved / closed", value: incidents.filter(item => ["resolved", "closed"].includes(item.response)).length, color: "#54dac0" }];
-  const activity = incidents.flatMap(item => item.history.map(event => ({ ...event, incidentId: item.id, demo: item.demo }))).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 4);
-  return <><PageTitle eyebrow="SITUATIONAL AWARENESS" title="Disaster situation room" description="A shared picture of local conditions. A clearer path to action."><span className="small freshness"><Clock3 size={14}/>{lastSynced ? `Synced ${relativeTime(lastSynced)}` : "Connecting…"}</span><Link className="button primary" href="/report"><MessageSquarePlus size={16}/>Report a hazard</Link></PageTitle><DataGate><div className="stats-grid">{[
-    { name: "Active advisories", value: alerts.length, icon: BellRing, color: "amber", detail: "Simulated · not official warnings", caption: "ALERT CENTER", href: "/alerts" },
-    { name: "Active incidents", value: active.length, icon: ClipboardList, color: "blue", detail: `${incidents.filter(item => item.demo).length} seeded demo records in this view`, caption: "INCIDENT MANAGEMENT", href: "/incidents" },
-    { name: "Awaiting verification", value: needsReview.length, icon: ShieldQuestion, color: "teal", detail: "Community reports need human review", caption: "REVIEW QUEUE", href: "/incidents?review=1" },
-    { name: "High-priority incidents", value: critical.length, icon: Siren, color: "red", detail: "Critical & high · unresolved", caption: "RESPONSE WORKSPACE", href: "/response" },
-  ].map(metric => <Link className={`stat-card stat-${metric.color}`} href={metric.href} key={metric.name}><div className="stat-top"><span>{metric.name}</span><metric.icon size={18} className={metric.color}/></div><div className="stat-value">{String(metric.value).padStart(2, "0")}<span className={`stat-indicator ${metric.color}`}/></div><p>{metric.detail}</p><div className="stat-bottom">{metric.caption}<ArrowUpRight size={14}/></div></Link>)}</div><div className="dashboard-main-grid"><section className="panel map-panel"><div className="panel-heading"><div><h2><span className="status-dot"/>Regional incident overview</h2><span className="small muted">{region === "All districts" ? "Assam & surrounding areas" : region} · {active.length} active incidents · includes demo records</span></div><Link className="text-link" href="/map">Explore map <ArrowUpRight size={14}/></Link></div><IncidentMap incidents={active} shelters={data?.shelters.filter(item => region === "All districts" || item.district === region)} height={390}/><div className="map-panel-footer"><span><span className="legend-dot hollow"/>Community report</span><span><span className="legend-dot teal-bg"/>Human reviewed</span><span className="muted">Map data © OpenStreetMap</span></div></section><section className="panel alert-panel"><div className="panel-heading"><h2><Radio size={16} className="amber"/>Advisory watch</h2><span className="count-chip">{alerts.length}</span></div><div className="alert-watch-list">{alerts.length ? alerts.map(alert => <Link href="/alerts" className={`watch-alert alert-${alert.severity}`} key={alert.id}><div className="watch-alert-top"><span className={`badge priority-${alert.severity === "red" ? "critical" : alert.severity === "orange" ? "high" : "medium"}`}>{label(alert.severity)} level</span><span className="demo-inline">DEMO</span></div><h3>{alert.title}</h3><p><HazardIcon hazard={alert.hazard} size={13}/>{alert.district}</p><div className="watch-alert-bottom"><span>{relativeTime(alert.issuedAt)}</span><ChevronRight size={15}/></div></Link>) : <div className="empty-state small">No active advisories for this district.</div>}</div><Link className="alert-panel-link" href="/alerts">View all advisories <ArrowRight size={15}/></Link></section></div><div className="dashboard-lower-grid"><section className="panel"><div className="panel-heading"><h2>Hazard distribution</h2><span className="demo-inline">INCLUDES DEMO</span></div><div className="hazard-chart"><ResponsiveContainer width="100%" height={180}><BarChart data={hazardData} layout="vertical" margin={{ left: 0, right: 18 }}><XAxis type="number" hide allowDecimals={false}/><YAxis type="category" dataKey="name" width={104} tick={{ fill: "#97a6ba", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip cursor={{ fill: "#ffffff06" }} contentStyle={{ background: "#172131", border: "1px solid #334154", borderRadius: 8, color: "#e8edf4" }}/><Bar dataKey="count" barSize={14} radius={[0, 3, 3, 0]}>{hazardData.map(entry => <Cell key={entry.name} fill={entry.fill}/>)}</Bar></BarChart></ResponsiveContainer></div><div className="chart-foot">{incidents.length} total records · selected district</div></section><section className="panel"><div className="panel-heading"><h2>Response progress</h2><span className="small muted">{incidents.length} incidents</span></div><div className="response-chart"><div className="donut-wrap"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={statusData} dataKey="value" innerRadius={48} outerRadius={63} paddingAngle={5} stroke="none">{statusData.map(entry => <Cell key={entry.name} fill={entry.color}/>)}</Pie></PieChart></ResponsiveContainer><div className="donut-label"><strong>{active.length}</strong><small>ACTIVE</small></div></div><div className="chart-legend">{statusData.map(entry => <div key={entry.name}><span><i style={{ background: entry.color }}/>{entry.name}</span><strong>{entry.value}</strong></div>)}</div></div><div className="chart-foot">Response status is independent of verification</div></section><section className="panel"><div className="panel-heading"><h2>Recent activity</h2><span className="small muted">AUDIT TRAIL</span></div><div className="activity-feed">{activity.map(event => <Link href={`/incidents/${event.incidentId}`} key={event.id}><span className="activity-dot"/><div><strong>{event.message.split(";")[0]}</strong><small>{event.incidentId} · {relativeTime(event.at)} {event.demo && "· DEMO"}</small></div></Link>)}</div></section></div><section className="panel recent-incidents"><div className="panel-heading"><div><h2>Latest incident reports</h2><span className="small muted">Original observations, awaiting or following human review</span></div><Link className="text-link" href="/incidents">View all incidents <ArrowUpRight size={14}/></Link></div><IncidentTable compact incidents={[...incidents].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5)}/></section></DataGate></>;
+  const incidents =
+    data?.incidents.filter((item) => region === "All districts" || item.district === region) || [];
+  const alerts =
+    data?.alerts.filter(
+      (item) =>
+        (region === "All districts" || item.district === region) &&
+        Date.parse(item.expiresAt) > Date.parse(lastSynced || "1970-01-01"),
+    ) || [];
+  const active = incidents.filter((item) => !["resolved", "closed"].includes(item.response));
+  const needsReview = incidents.filter((item) =>
+    ["unverified", "under_review"].includes(item.verification),
+  );
+  const critical = active.filter(
+    (item) => item.priority === "critical" || item.priority === "high",
+  );
+  const hazardData = hazards.map((hazard, i) => ({
+    name: label(hazard),
+    count: incidents.filter((item) => item.hazard === hazard).length,
+    fill: chartColors[i],
+  }));
+  const statusData = [
+    {
+      name: "Awaiting response",
+      value: active.filter((item) => item.response === "new").length,
+      color: "#eab56f",
+    },
+    {
+      name: "Assigned / in progress",
+      value: active.filter((item) => ["assigned", "in_progress"].includes(item.response)).length,
+      color: "#5ba7ff",
+    },
+    {
+      name: "Resolved / closed",
+      value: incidents.filter((item) => ["resolved", "closed"].includes(item.response)).length,
+      color: "#54dac0",
+    },
+  ];
+  const activity = incidents
+    .flatMap((item) =>
+      item.history.map((event) => ({ ...event, incidentId: item.id, demo: item.demo })),
+    )
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 4);
+  return (
+    <>
+      <PageTitle
+        eyebrow="SITUATIONAL AWARENESS"
+        title="Disaster situation room"
+        description="A shared picture of local conditions. A clearer path to action."
+      >
+        <span className="small freshness">
+          <Clock3 size={14} />
+          {lastSynced ? `Synced ${relativeTime(lastSynced)}` : "Connecting…"}
+        </span>
+        <Link className="button primary" href="/report">
+          <MessageSquarePlus size={16} />
+          Report a hazard
+        </Link>
+      </PageTitle>
+      <DataGate>
+        <div className="stats-grid">
+          {[
+            {
+              name: "Active advisories",
+              value: alerts.length,
+              icon: BellRing,
+              color: "amber",
+              detail: "Simulated · not official warnings",
+              caption: "ALERT CENTER",
+              href: "/alerts",
+            },
+            {
+              name: "Active incidents",
+              value: active.length,
+              icon: ClipboardList,
+              color: "blue",
+              detail: `${incidents.filter((item) => item.demo).length} seeded demo records in this view`,
+              caption: "INCIDENT MANAGEMENT",
+              href: "/incidents",
+            },
+            {
+              name: "Awaiting verification",
+              value: needsReview.length,
+              icon: ShieldQuestion,
+              color: "teal",
+              detail: "Community reports need human review",
+              caption: "REVIEW QUEUE",
+              href: "/incidents?review=1",
+            },
+            {
+              name: "High-priority incidents",
+              value: critical.length,
+              icon: Siren,
+              color: "red",
+              detail: "Critical & high · unresolved",
+              caption: "RESPONSE WORKSPACE",
+              href: "/response",
+            },
+          ].map((metric) => (
+            <Link className={`stat-card stat-${metric.color}`} href={metric.href} key={metric.name}>
+              <div className="stat-top">
+                <span>{metric.name}</span>
+                <metric.icon size={18} className={metric.color} />
+              </div>
+              <div className="stat-value">
+                {String(metric.value).padStart(2, "0")}
+                <span className={`stat-indicator ${metric.color}`} />
+              </div>
+              <p>{metric.detail}</p>
+              <div className="stat-bottom">
+                {metric.caption}
+                <ArrowUpRight size={14} />
+              </div>
+            </Link>
+          ))}
+        </div>
+        <div className="dashboard-main-grid">
+          <section className="panel map-panel">
+            <div className="panel-heading">
+              <div>
+                <h2>
+                  <span className="status-dot" />
+                  Regional incident overview
+                </h2>
+                <span className="small muted">
+                  {region === "All districts" ? "Assam & surrounding areas" : region} ·{" "}
+                  {active.length} active incidents · includes demo records
+                </span>
+              </div>
+              <Link className="text-link" href="/map">
+                Explore map <ArrowUpRight size={14} />
+              </Link>
+            </div>
+            <IncidentMap
+              incidents={active}
+              shelters={data?.shelters.filter(
+                (item) => region === "All districts" || item.district === region,
+              )}
+              height={390}
+            />
+            <div className="map-panel-footer">
+              <span>
+                <span className="legend-dot hollow" />
+                Community report
+              </span>
+              <span>
+                <span className="legend-dot teal-bg" />
+                Human reviewed
+              </span>
+              <span className="muted">Map data © OpenStreetMap</span>
+            </div>
+          </section>
+          <section className="panel alert-panel">
+            <div className="panel-heading">
+              <h2>
+                <Radio size={16} className="amber" />
+                Advisory watch
+              </h2>
+              <span className="count-chip">{alerts.length}</span>
+            </div>
+            <div className="alert-watch-list">
+              {alerts.length ? (
+                alerts.map((alert) => (
+                  <Link
+                    href="/alerts"
+                    className={`watch-alert alert-${alert.severity}`}
+                    key={alert.id}
+                  >
+                    <div className="watch-alert-top">
+                      <span
+                        className={`badge priority-${alert.severity === "red" ? "critical" : alert.severity === "orange" ? "high" : "medium"}`}
+                      >
+                        {label(alert.severity)} level
+                      </span>
+                      <span className="demo-inline">DEMO</span>
+                    </div>
+                    <h3>{alert.title}</h3>
+                    <p>
+                      <HazardIcon hazard={alert.hazard} size={13} />
+                      {alert.district}
+                    </p>
+                    <div className="watch-alert-bottom">
+                      <span>{relativeTime(alert.issuedAt)}</span>
+                      <ChevronRight size={15} />
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="empty-state small">No active advisories for this district.</div>
+              )}
+            </div>
+            <Link className="alert-panel-link" href="/alerts">
+              View all advisories <ArrowRight size={15} />
+            </Link>
+          </section>
+        </div>
+        <div className="dashboard-lower-grid">
+          <section className="panel">
+            <div className="panel-heading">
+              <h2>Hazard distribution</h2>
+              <span className="demo-inline">INCLUDES DEMO</span>
+            </div>
+            <div className="hazard-chart">
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={hazardData} layout="vertical" margin={{ left: 0, right: 18 }}>
+                  <XAxis type="number" hide allowDecimals={false} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={104}
+                    tick={{ fill: "#97a6ba", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "#ffffff06" }}
+                    contentStyle={{
+                      background: "#172131",
+                      border: "1px solid #334154",
+                      borderRadius: 8,
+                      color: "#e8edf4",
+                    }}
+                  />
+                  <Bar dataKey="count" barSize={14} radius={[0, 3, 3, 0]}>
+                    {hazardData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="chart-foot">{incidents.length} total records · selected district</div>
+          </section>
+          <section className="panel">
+            <div className="panel-heading">
+              <h2>Response progress</h2>
+              <span className="small muted">{incidents.length} incidents</span>
+            </div>
+            <div className="response-chart">
+              <div className="donut-wrap">
+                <ResponsiveContainer width="100%" height={150}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      innerRadius={48}
+                      outerRadius={63}
+                      paddingAngle={5}
+                      stroke="none"
+                    >
+                      {statusData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="donut-label">
+                  <strong>{active.length}</strong>
+                  <small>ACTIVE</small>
+                </div>
+              </div>
+              <div className="chart-legend">
+                {statusData.map((entry) => (
+                  <div key={entry.name}>
+                    <span>
+                      <i style={{ background: entry.color }} />
+                      {entry.name}
+                    </span>
+                    <strong>{entry.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="chart-foot">Response status is independent of verification</div>
+          </section>
+          <section className="panel">
+            <div className="panel-heading">
+              <h2>Recent activity</h2>
+              <span className="small muted">AUDIT TRAIL</span>
+            </div>
+            <div className="activity-feed">
+              {activity.map((event) => (
+                <Link href={`/incidents/${event.incidentId}`} key={event.id}>
+                  <span className="activity-dot" />
+                  <div>
+                    <strong>{event.message.split(";")[0]}</strong>
+                    <small>
+                      {event.incidentId} · {relativeTime(event.at)} {event.demo && "· DEMO"}
+                    </small>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>
+        <section className="panel recent-incidents">
+          <div className="panel-heading">
+            <div>
+              <h2>Latest incident reports</h2>
+              <span className="small muted">
+                Original observations, awaiting or following human review
+              </span>
+            </div>
+            <Link className="text-link" href="/incidents">
+              View all incidents <ArrowUpRight size={14} />
+            </Link>
+          </div>
+          <IncidentTable
+            compact
+            incidents={[...incidents]
+              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+              .slice(0, 5)}
+          />
+        </section>
+      </DataGate>
+    </>
+  );
 }

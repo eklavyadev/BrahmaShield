@@ -1,2 +1,4 @@
 import { ReportPage } from "@/components/report";
-export default function Page() { return <ReportPage/>; }
+export default function Page() {
+  return <ReportPage />;
+}

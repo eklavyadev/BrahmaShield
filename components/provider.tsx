@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { Snapshot } from "@/lib/domain";
 
 interface AppState {
@@ -25,26 +25,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [demoLogin, setDemoLogin] = useState(false);
   const [region, setRegion] = useState("All districts");
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const requestSequence = useRef(0);
   const refresh = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     try {
       const response = await fetch("/api/snapshot", { cache: "no-store" });
       if (!response.ok) throw new Error("Unable to load the shared incident data.");
       const next: Snapshot = await response.json();
-      setData(next); setError(""); setLastSynced(new Date().toISOString());
-    } catch (error) { setError(error instanceof Error ? error.message : "Connection unavailable."); }
-    finally { setLoading(false); }
+      if (sequence !== requestSequence.current) return;
+      setData(next);
+      setError("");
+      setLastSynced(new Date().toISOString());
+    } catch (error) {
+      if (sequence === requestSequence.current)
+        setError(error instanceof Error ? error.message : "Connection unavailable.");
+    } finally {
+      if (sequence === requestSequence.current) setLoading(false);
+    }
   }, []);
   const refreshAuth = useCallback(async () => {
-    try { const response = await fetch("/api/auth", { cache: "no-store" }); const auth = await response.json(); setResponder(auth.responder === true); setDemoLogin(auth.demoLogin === true); } catch { setResponder(false); }
+    try {
+      const response = await fetch("/api/auth", { cache: "no-store" });
+      const auth = await response.json();
+      setResponder(auth.responder === true);
+      setDemoLogin(auth.demoLogin === true);
+    } catch {
+      setResponder(false);
+    }
   }, []);
   useEffect(() => {
-    const updateOnline = () => { setOnline(navigator.onLine); if (navigator.onLine) { void refresh(); void refreshAuth(); } };
+    const updateOnline = () => {
+      setOnline(navigator.onLine);
+      if (navigator.onLine) {
+        void refresh();
+        void refreshAuth();
+      }
+    };
     updateOnline();
-    const interval = setInterval(() => { if (navigator.onLine) void refresh(); }, 15000);
-    window.addEventListener("online", updateOnline); window.addEventListener("offline", updateOnline);
-    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
-    return () => { clearInterval(interval); window.removeEventListener("online", updateOnline); window.removeEventListener("offline", updateOnline); };
+    const interval = setInterval(() => {
+      if (navigator.onLine) void refresh();
+    }, 15000);
+    window.addEventListener("online", updateOnline);
+    window.addEventListener("offline", updateOnline);
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator)
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", updateOnline);
+      window.removeEventListener("offline", updateOnline);
+    };
   }, [refresh, refreshAuth]);
-  return <Context.Provider value={{ data, loading, error, online, responder, demoLogin, region, setRegion, refresh, refreshAuth, lastSynced }}>{children}</Context.Provider>;
+  return (
+    <Context.Provider
+      value={{
+        data,
+        loading,
+        error,
+        online,
+        responder,
+        demoLogin,
+        region,
+        setRegion,
+        refresh,
+        refreshAuth,
+        lastSynced,
+      }}
+    >
+      {children}
+    </Context.Provider>
+  );
 }
-export function useApp() { const value = useContext(Context); if (!value) throw new Error("Missing AppProvider"); return value; }
+export function useApp() {
+  const value = useContext(Context);
+  if (!value) throw new Error("Missing AppProvider");
+  return value;
+}

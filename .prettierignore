@@ -1,0 +1,9 @@
+.next/
+node_modules/
+.data/
+package-lock.json
+next-env.d.ts
+AGENTS.md
+.env*
+public/icon.svg
+public/manifest.webmanifest

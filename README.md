@@ -21,6 +21,9 @@ Use **Observer → Enter local demo workspace** to try the server-protected resp
 - Consistent persisted records across every screen, with 15-second polling and immediate refetch after actions.
 - OpenStreetMap raster tiles through Leaflet, OSM attribution, independent hazard/shelter layers, clickable incident popups, zoom, fit-to-records, and accessible list fallback.
 - Validated English/Assamese report form, device geolocation with manual map/coordinate fallback, optional JPEG/PNG evidence, and a trackable incident ID.
+- Roadwatch-inspired reporting: hazard-specific impact, firsthand/secondhand observations, GPS accuracy, photo preview, truthful-report declaration, and consent. Low GPS accuracy is a review signal, never a reason to ask someone to approach danger.
+- Server-side intake tokens bound to an anonymous device cookie, a honeypot, and device/network request limits. Matching text/location/time, reused images, repetitive wording, and excessive links flag reports for triage. Possible duplicates remain separate as potential corroboration; neither AI nor spam scoring verifies a report.
+- Flagged submissions are visible only to their submitting browser and responders until verified. Their AI jobs are held until a responder starts review. Private image digests and device hashes never appear in API snapshots.
 - Images are re-encoded on the client to reduce size and remove metadata; upload magic bytes and size are checked on the server. Photos require responder access.
 - Original reports retained separately from AI output. One tested curated Assamese demonstration example; arbitrary reports are explicitly not translated in demo mode.
 - Server-enforced verification and response lifecycles, evidence notes, an audit history, and optimistic revision checks that reject stale edits.
@@ -78,14 +81,15 @@ Verification (`unverified / under_review / verified / rejected`) is separate fro
 
 ## APIs
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /api/snapshot` | Shared data snapshot; resumes queued AI jobs |
-| `POST /api/reports` | Validated, idempotent community submission |
-| `PATCH /api/incidents/:id` | Authenticated, revision-checked responder action |
-| `GET/POST/DELETE /api/auth` | Session state, sign-in, sign-out |
-| `POST /api/ai` | Interpretation, advisory explanation, preparedness guidance |
-| `GET /api/media/:file` | Responder-only evidence photo |
+| Endpoint                    | Purpose                                                     |
+| --------------------------- | ----------------------------------------------------------- |
+| `GET /api/snapshot`         | Shared data snapshot; resumes queued AI jobs                |
+| `GET /api/intake`           | Anonymous device cookie and signed submission token         |
+| `POST /api/reports`         | Validated, idempotent community submission                  |
+| `PATCH /api/incidents/:id`  | Authenticated, revision-checked responder action            |
+| `GET/POST/DELETE /api/auth` | Session state, sign-in, sign-out                            |
+| `POST /api/ai`              | Interpretation, advisory explanation, preparedness guidance |
+| `GET /api/media/:file`      | Responder-only evidence photo                               |
 
 ## Build and verification
 
@@ -100,6 +104,10 @@ npm start
 For a production-mode local run, configure `RESPONDER_PASSWORD` and a cryptographically random `SESSION_SECRET` (at least 32 characters). Demo login is disabled in production. Cookie security expects HTTPS when deployed.
 
 Tests cover rejected/invalid reports, evidence requirements, urgent unverified assignments, stale edits, response transitions, idempotency, atomic persistence, attachment checks, durable jobs, failure/retry behavior, curated language output, unsupported guidance questions, and validated live-model responses using stubs. The SQLite experimental warning on Node 22 is expected.
+
+Intake tests also cover token expiry/tampering, duplicate and spam signals, and private snapshot projection. With the development server running in demo mode, `npm run test:smoke` exercises pages, consent/honeypot enforcement, private duplicate holds, and the complete authenticated response workflow. It retains clearly labelled TEST incidents for audit; never run it against a real emergency deployment.
+
+The anonymous `bs-reporter` cookie gives a browser access to its held submissions; clearing it removes that access. This is not identity verification. Local `.data/intake.key` keeps tokens and development sessions stable across restarts. Preserve it with the database, keep `.data` private, and configure `SESSION_SECRET` in production.
 
 ## Data sources and honest limitations
 
