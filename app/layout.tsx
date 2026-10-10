@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { AppProvider } from "@/components/provider";
 import { Shell } from "@/components/shell";
 import "./globals.css";
+const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
 export const metadata: Metadata = {
   title: { default: "BrahmaShield · Disaster Situation Room", template: "%s · BrahmaShield" },
   description:
@@ -10,10 +17,10 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0b111b" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#172B36" };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
       <body>
         <AppProvider>
           <Shell>{children}</Shell>

@@ -22,6 +22,7 @@ const payload = {
   gpsAccuracyM: 20,
   gpsCapturedAt: new Date().toISOString(),
   observationSource: "first_hand",
+  impactLevel: 3,
   imageData:
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
 };
@@ -49,6 +50,14 @@ const response = await submit();
 const saved = await response.json();
 assert.equal(response.status, 201, saved.error);
 assert.equal((await submit()).status, 200);
+const snapshot = await (
+  await fetch(`${base}/api/snapshot`, { headers: { Cookie: cookie } })
+).json();
+assert.equal(
+  snapshot.incidents.find((incident) => incident.id === saved.id)?.reports[0].quality
+    .reportedImpact,
+  3,
+);
 console.log(
   `On-site HTTP checks passed: manual/map/stale/inaccurate/missing-photo rejected; GPS photo report saved idempotently (${saved.id}). TEST record retained.`,
 );

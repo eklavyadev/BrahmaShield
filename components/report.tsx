@@ -2,27 +2,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  CheckCircle2,
-  LocateFixed,
-  MapPin,
-  Upload,
-  Send,
-  Save,
-  WifiOff,
-  Info,
-  Languages,
-} from "lucide-react";
+import { CheckCircle2, LocateFixed, Send, Save, WifiOff } from "lucide-react";
 import { useApp } from "./provider";
-import { PageTitle } from "./ui";
-import { IncidentMap } from "./maps/map";
 import { districtNames, hazards, label, onSiteReportSchema, type ReportInput } from "@/lib/domain";
 import { prepareEvidence } from "@/lib/report-media";
 import { currentReportLocation, nearby } from "@/lib/report-location";
 import { clearDraft, readDraft, saveDraft, type ReportDraft } from "@/lib/offline";
 import { impactLabels } from "@/lib/impact";
 
-const sample = "নাওবৈচাৰ পথত পানী উঠিছে। কেইজনমান লোক পথৰ সিপাৰে আবদ্ধ হৈ আছে।";
 const initial: ReportDraft = {
   clientId: "",
   hazard: "flood",
@@ -46,7 +33,6 @@ export function ReportPage() {
   const [form, setForm] = useState<ReportDraft>(initial);
   const [hydrated, setHydrated] = useState(false);
   const [confirmedLocation, setConfirmedLocation] = useState(false);
-  const [language, setLanguage] = useState("en");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -204,7 +190,7 @@ export function ReportPage() {
       const location = await currentReportLocation();
       setForm((previous) => ({ ...previous, ...location }));
       setConfirmedLocation(true);
-      setNotice("Device GPS captured. This pin is fixed to your location and cannot be moved.");
+      setNotice("Current GPS location detected.");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Device GPS is unavailable.");
     } finally {
@@ -232,389 +218,254 @@ export function ReportPage() {
         </div>
       </div>
     );
-  const as = language === "as";
   return (
-    <>
-      <PageTitle
-        eyebrow="COMMUNITY INTELLIGENCE"
-        title={as ? "বিপদৰ খবৰ দিয়ক" : "Report a local hazard"}
-        description={
-          as
-            ? "আপুনি দেখা পৰিস্থিতিৰ খবৰ দিয়ক। তথ্যসমূহ পৰ্যালোচনা কৰা হ’ব।"
-            : "Share what you observed. Local knowledge helps responders understand changing conditions."
-        }
-      >
-        <label className="language-control">
-          <Languages size={16} />
-          <select
-            aria-label="Interface language"
-            value={language}
-            onChange={(event) => setLanguage(event.target.value)}
-          >
-            <option value="en">English</option>
-            <option value="as">অসমীয়া</option>
-          </select>
-        </label>
-      </PageTitle>
-      <div className="report-layout">
-        <form className="panel report-form" onSubmit={submit}>
-          <div className="panel-heading">
-            <h2>Observation details</h2>
-            <span className="small muted">* Required</span>
-          </div>
-          <div className="form-body">
-            {!online && (
-              <div className="notice warning">
-                <WifiOff size={16} />
-                Offline · reports stay on this device until delivery is confirmed.
-              </div>
-            )}
-            {notice && <div className="notice">{notice}</div>}
-            {queued && (
-              <div className="notice warning">
-                Pending server confirmation. Keep this page open to retry.
-                <div className="button-row">
-                  <button
-                    type="button"
-                    className="button small-button"
-                    disabled={busy || !online}
-                    onClick={() => void deliver(queued)}
-                  >
-                    Retry upload
-                  </button>
-                  <button
-                    type="button"
-                    className="text-link"
-                    onClick={() => {
-                      setQueued(null);
-                      attempt.current = false;
-                      void saveDraft(form);
-                    }}
-                  >
-                    Edit saved draft
-                  </button>
-                </div>
-              </div>
-            )}
-            <fieldset disabled={busy || imageBusy || !!queued}>
-              <div className="two-columns">
-                <label>
-                  {as ? "বিপদৰ ধৰণ" : "Hazard type"} *
-                  <select
-                    value={form.hazard}
-                    onChange={(event) =>
-                      setForm((previous) => ({
-                        ...previous,
-                        hazard: event.target.value as ReportInput["hazard"],
-                        impactLevel: 2,
-                      }))
-                    }
-                  >
-                    {hazards.map((hazard) => (
-                      <option key={hazard} value={hazard}>
-                        {label(hazard)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {as ? "খবৰৰ ভাষা" : "Report language"}
-                  <select
-                    value={form.language}
-                    onChange={(event) =>
-                      update("language", event.target.value as ReportInput["language"])
-                    }
-                  >
-                    <option value="en">English</option>
-                    <option value="as">Assamese / অসমীয়া</option>
-                    <option value="mixed">Mixed / transliterated</option>
-                  </select>
-                </label>
-              </div>
-              <div className="two-columns">
-                <label>
-                  Reported impact
-                  <select
-                    value={form.impactLevel}
-                    onChange={(event) =>
-                      update("impactLevel", Number(event.target.value) as 1 | 2 | 3)
-                    }
-                  >
-                    {impactLabels[form.hazard].map((description, index) => (
-                      <option value={index + 1} key={description}>
-                        {index + 1} · {description}
-                      </option>
-                    ))}
-                  </select>
-                  <small>Your assessment; responder priority is decided separately.</small>
-                </label>
-                <div className="notice">
-                  Only firsthand observations from your current site can be submitted.
-                </div>
-              </div>
-              <label>
-                {as ? "আপুনি কি দেখিছে?" : "What did you observe?"} *
-                <textarea
-                  required
-                  minLength={15}
-                  maxLength={4000}
-                  rows={5}
-                  placeholder={
-                    as
-                      ? "ঘটনাটোৰ বিষয়ে বৰ্ণনা কৰক…"
-                      : "Describe the conditions, observed impact, and anything responders should check. Avoid names, phone numbers, or private details."
-                  }
-                  value={form.description}
-                  onChange={(event) => update("description", event.target.value)}
-                />
-              </label>
-              <div className="field-hint">
-                <span>{form.description.length} / 4000 characters</span>
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => {
-                    setForm((previous) => ({
-                      ...previous,
-                      description: sample,
-                      language: "as",
-                    }));
-                  }}
-                >
-                  Try Assamese example
-                </button>
-              </div>
-              <div className="two-columns">
-                <label>
-                  {as ? "জিলা" : "District"} *
-                  <select
-                    value={form.district}
-                    onChange={(event) => update("district", event.target.value)}
-                  >
-                    {districtNames.slice(1).map((name) => (
-                      <option key={name}>{name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {as ? "স্থানৰ নাম" : "Place / landmark"} *
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={160}
-                    placeholder="Village, road, or landmark"
-                    value={form.locationName}
-                    onChange={(event) => update("locationName", event.target.value)}
-                  />
-                </label>
-              </div>
-              <label>
-                {as ? "ঘটনাৰ সময়" : "When did you observe this?"} *
-                <input
-                  type="datetime-local"
-                  required
-                  value={
-                    form.observedAt
-                      ? new Date(Date.parse(form.observedAt) + 330 * 60000)
-                          .toISOString()
-                          .slice(0, 16)
-                      : ""
-                  }
-                  onChange={(event) => {
-                    if (event.target.value)
-                      update(
-                        "observedAt",
-                        new Date(`${event.target.value}:00+05:30`).toISOString(),
-                      );
-                  }}
-                />
-                <small>Time is entered in India Standard Time.</small>
-              </label>
-              <div className="location-heading">
-                <h3>
-                  <MapPin size={16} />
-                  Report location *
-                </h3>
+    <div className="minimal-report">
+      <form className="panel report-form" onSubmit={submit}>
+        <header className="minimal-report-heading">
+          <h1>Report a hazard</h1>
+          <p>Report from the site. Photo and current GPS are required.</p>
+        </header>
+        <div className="form-body">
+          {!online && (
+            <div className="notice warning">
+              <WifiOff size={15} />
+              Offline · saved reports wait for upload.
+            </div>
+          )}
+          {notice && (
+            <p className="notice" role="status">
+              {notice}
+            </p>
+          )}
+          {queued && (
+            <div className="notice warning">
+              Pending upload.
+              <div className="button-row">
                 <button
                   type="button"
                   className="button small-button"
-                  onClick={geolocate}
-                  disabled={geolocating}
+                  disabled={busy || !online}
+                  onClick={() => void deliver(queued)}
                 >
-                  {geolocating ? (
-                    "Locating…"
-                  ) : (
-                    <>
-                      <LocateFixed size={14} />
-                      Use my location
-                    </>
-                  )}
+                  Retry upload
+                </button>
+                <button
+                  type="button"
+                  className="text-link"
+                  disabled={busy}
+                  onClick={() => {
+                    setQueued(null);
+                    attempt.current = false;
+                    void saveDraft(form);
+                  }}
+                >
+                  Edit draft
                 </button>
               </div>
-              {confirmedLocation ? (
-                <IncidentMap incidents={[]} height={250} selected={[form.lat, form.lng]} />
-              ) : (
-                <div className="notice">
-                  Capture your current GPS location to view the fixed reporting pin. You cannot
-                  select a different location.
-                </div>
-              )}
-              <p className="small muted location-quality">
-                {confirmedLocation
-                  ? `Device GPS: ${form.lat.toFixed(5)}, ${form.lng.toFixed(5)} · accuracy ±${Math.round(form.gpsAccuracyM || 0)} metres`
-                  : "Device location not captured"}
-              </p>
-              <label className="upload-field">
-                <Upload size={20} />
-                <strong>
-                  {imageName ||
-                    (form.imageData ? "Saved image attached" : "Attach a hazard photo *")}
-                </strong>
-                <small>JPEG, PNG, or WebP · up to 10 MB · resized and metadata removed</small>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  aria-label="Hazard photo"
-                  required={!form.imageData}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    void upload(file);
-                  }}
-                />
-              </label>
-              {imageBusy && <p role="status">Preparing photo…</p>}
-              {form.imageData && (
+            </div>
+          )}
+          <fieldset disabled={busy || imageBusy || !!queued}>
+            <label>
+              Photo *
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="Hazard photo"
+                required={!form.imageData}
+                onChange={(event) => void upload(event.target.files?.[0])}
+              />
+              <small>JPEG, PNG or WebP · up to 10 MB</small>
+            </label>
+            {imageBusy && <p role="status">Preparing photo…</p>}
+            {form.imageData && (
+              <div className="minimal-photo">
                 <Image
                   className="evidence-preview"
                   src={form.imageData}
                   alt="Attached hazard evidence preview"
                   width={600}
-                  height={220}
+                  height={150}
                   unoptimized
                 />
-              )}
-              {form.imageData && (
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => {
-                    update("imageData", undefined);
-                    setImageName("");
-                  }}
-                >
-                  Remove attachment
-                </button>
-              )}
-              <label className="report-declaration">
-                <input
-                  type="checkbox"
-                  checked={form.declaration}
-                  onChange={(event) => update("declaration", event.target.checked)}
-                />
-                <span>
-                  <strong>I confirm this report is truthful to the best of my knowledge.</strong> I
-                  consent to storing the reported location and observations for review and
-                  coordination within this prototype. Reports may appear in public views with their
-                  verification status; possible spam is held for triage. Photos are responder-only.
-                  I have not included private contact or health information. This does not submit a
-                  complaint to a government authority.
-                </span>
-              </label>
-              <div className="honeypot" aria-hidden="true">
-                <label>
-                  Website
-                  <input
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={form.website}
-                    onChange={(event) => update("website", event.target.value)}
-                  />
-                </label>
+                <div className="field-hint">
+                  <span>{imageName || "Saved photo"}</span>
+                  <button
+                    type="button"
+                    className="text-link"
+                    onClick={() => {
+                      update("imageData", undefined);
+                      setImageName("");
+                    }}
+                  >
+                    Remove photo
+                  </button>
+                </div>
               </div>
-            </fieldset>
-            {error && (
-              <p className="form-error" role="alert">
-                {error}
-              </p>
             )}
-            <div className="form-footer">
+            <div className="minimal-gps" aria-live="polite">
+              <div>
+                <strong>Device location *</strong>
+                <p>
+                  {confirmedLocation
+                    ? `GPS detected · accuracy ±${Math.round(form.gpsAccuracyM || 0)} m`
+                    : "Not detected yet"}
+                </p>
+              </div>
               <button
                 type="button"
-                className="button"
-                disabled={busy || !hydrated}
-                onClick={() =>
-                  void saveDraft(form)
-                    .then(() => setNotice("Draft saved on this device. It has not been submitted."))
-                    .catch(() => setError("Unable to save the draft."))
-                }
+                className="button small-button"
+                disabled={geolocating}
+                onClick={() => void geolocate()}
               >
-                <Save size={15} />
-                Save draft
-              </button>
-              <button
-                className="button primary"
-                disabled={
-                  busy ||
-                  imageBusy ||
-                  geolocating ||
-                  !hydrated ||
-                  !!queued ||
-                  !form.declaration ||
-                  !confirmedLocation ||
-                  !form.imageData
-                }
-              >
-                <Send size={15} />
-                {busy
-                  ? "Sending…"
-                  : online
-                    ? as
-                      ? "খবৰ পঠিয়াওক"
-                      : "Submit report"
-                    : "Queue offline report"}
+                <LocateFixed size={14} />
+                {geolocating ? "Detecting…" : confirmedLocation ? "Refresh GPS" : "Detect GPS"}
               </button>
             </div>
+            <div className="two-columns">
+              <label>
+                Hazard type *
+                <select
+                  value={form.hazard}
+                  onChange={(event) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      hazard: event.target.value as ReportInput["hazard"],
+                      impactLevel: 2,
+                    }))
+                  }
+                >
+                  {hazards.map((hazard) => (
+                    <option key={hazard} value={hazard}>
+                      {label(hazard)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Severity level *
+                <select
+                  aria-label="Severity level"
+                  value={form.impactLevel}
+                  onChange={(event) =>
+                    update("impactLevel", Number(event.target.value) as 1 | 2 | 3)
+                  }
+                >
+                  {impactLabels[form.hazard].map((description, index) => (
+                    <option key={description} value={index + 1}>
+                      {["Low", "Moderate", "Severe"][index]}
+                    </option>
+                  ))}
+                </select>
+                <small>{impactLabels[form.hazard][form.impactLevel - 1]}</small>
+              </label>
+            </div>
+            <label>
+              Description *
+              <textarea
+                required
+                minLength={15}
+                maxLength={4000}
+                rows={3}
+                placeholder="What happened? Describe what you can see. Any local language is welcome."
+                value={form.description}
+                onChange={(event) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    description: event.target.value,
+                    language: /[\u0980-\u09ff]/.test(event.target.value) ? "mixed" : "en",
+                  }))
+                }
+              />
+            </label>
+            <div className="two-columns">
+              <label>
+                District *
+                <select
+                  value={form.district}
+                  onChange={(event) => update("district", event.target.value)}
+                >
+                  {districtNames.slice(1).map((name) => (
+                    <option key={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Nearest landmark *
+                <input
+                  required
+                  minLength={3}
+                  maxLength={160}
+                  placeholder="e.g. Near the village bridge"
+                  value={form.locationName}
+                  onChange={(event) => update("locationName", event.target.value)}
+                />
+              </label>
+            </div>
+            <label className="report-declaration">
+              <input
+                type="checkbox"
+                checked={form.declaration}
+                onChange={(event) => update("declaration", event.target.checked)}
+              />
+              <span>
+                I’m at this site and my report is truthful. I consent to storing my photo, GPS and
+                description for review. Text and location may be public; photos are restricted to
+                authorized responders.
+              </span>
+            </label>
+            <div className="honeypot" aria-hidden="true">
+              <label>
+                Website
+                <input
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(event) => update("website", event.target.value)}
+                />
+              </label>
+            </div>
+          </fieldset>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="form-footer">
+            <button
+              type="button"
+              className="button"
+              disabled={busy || imageBusy || !hydrated}
+              onClick={() =>
+                void saveDraft(form)
+                  .then(() => setNotice("Draft saved on this device."))
+                  .catch(() => setError("Unable to save draft."))
+              }
+            >
+              <Save size={14} />
+              Save draft
+            </button>
+            <button
+              className="button primary"
+              disabled={
+                busy ||
+                imageBusy ||
+                geolocating ||
+                !hydrated ||
+                !!queued ||
+                !form.declaration ||
+                !confirmedLocation ||
+                !form.imageData
+              }
+            >
+              <Send size={14} />
+              {busy ? "Sending…" : online ? "Submit report" : "Save for upload"}
+            </button>
           </div>
-        </form>
-        <aside className="report-sidebar">
-          <section className="panel padded">
-            <Info className="teal" />
-            <h3>Your words. A clearer picture.</h3>
-            <p>
-              Gemma can extract location clues and reported impact. The original report stays
-              unchanged.
-            </p>
-            <ol className="process-steps">
-              <li>
-                <span>1</span>Submit your observation
-              </li>
-              <li>
-                <span>2</span>Interpret with Gemma or demo adapter
-              </li>
-              <li>
-                <span>3</span>Human review and prioritisation
-              </li>
-              <li>
-                <span>4</span>Track the response status
-              </li>
-            </ol>
-          </section>
-          <section className="panel padded">
-            <h3>Before you submit</h3>
-            <p>
-              Report only what you observed. Do not approach a dangerous area to collect evidence.
-            </p>
-            <p>
-              Describe assistance needs without identifying vulnerable individuals. Attachments are
-              visible only to authorized responders.
-            </p>
-            <p className="small amber">
-              This platform does not arrange rescue. Follow official emergency channels and local
-              authority instructions.
-            </p>
-          </section>
-        </aside>
-      </div>
-    </>
+          <p className="minimal-safety">
+            Do not enter danger to report. This app does not contact emergency services.
+          </p>
+        </div>
+      </form>
+    </div>
   );
 }

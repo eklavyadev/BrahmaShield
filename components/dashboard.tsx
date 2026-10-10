@@ -27,7 +27,7 @@ import { useApp } from "./provider";
 import { DataGate, HazardIcon, IncidentTable, PageTitle, relativeTime } from "./ui";
 import { IncidentMap } from "./maps/map";
 import { hazards, label } from "@/lib/domain";
-const chartColors = ["#5ba7ff", "#eda85e", "#b29aff", "#5ad6c0"];
+const chartColors = ["#D9E8E2", "#FF9932", "#a9bfb8", "#d8b58f"];
 export function Dashboard() {
   const { data, region, lastSynced } = useApp();
   const incidents =
@@ -54,17 +54,17 @@ export function Dashboard() {
     {
       name: "Awaiting response",
       value: active.filter((item) => item.response === "new").length,
-      color: "#eab56f",
+      color: "#FF9932",
     },
     {
       name: "Assigned / in progress",
       value: active.filter((item) => ["assigned", "in_progress"].includes(item.response)).length,
-      color: "#5ba7ff",
+      color: "#a9bfb8",
     },
     {
       name: "Resolved / closed",
       value: incidents.filter((item) => ["resolved", "closed"].includes(item.response)).length,
-      color: "#54dac0",
+      color: "#D9E8E2",
     },
   ];
   const activity = incidents
@@ -226,105 +226,108 @@ export function Dashboard() {
             </Link>
           </section>
         </div>
-        <div className="dashboard-lower-grid">
-          <section className="panel">
-            <div className="panel-heading">
-              <h2>Hazard distribution</h2>
-              <span className="demo-inline">INCLUDES DEMO</span>
-            </div>
-            <div className="hazard-chart">
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={hazardData} layout="vertical" margin={{ left: 0, right: 18 }}>
-                  <XAxis type="number" hide allowDecimals={false} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={104}
-                    tick={{ fill: "#97a6ba", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#ffffff06" }}
-                    contentStyle={{
-                      background: "#172131",
-                      border: "1px solid #334154",
-                      borderRadius: 8,
-                      color: "#e8edf4",
-                    }}
-                  />
-                  <Bar dataKey="count" barSize={14} radius={[0, 3, 3, 0]}>
-                    {hazardData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="chart-foot">{incidents.length} total records · selected district</div>
-          </section>
-          <section className="panel">
-            <div className="panel-heading">
-              <h2>Response progress</h2>
-              <span className="small muted">{incidents.length} incidents</span>
-            </div>
-            <div className="response-chart">
-              <div className="donut-wrap">
-                <ResponsiveContainer width="100%" height={150}>
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      dataKey="value"
-                      innerRadius={48}
-                      outerRadius={63}
-                      paddingAngle={5}
-                      stroke="none"
-                    >
-                      {statusData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
+        <details className="dashboard-details">
+          <summary>Charts and recent activity</summary>
+          <div className="dashboard-lower-grid">
+            <section className="panel">
+              <div className="panel-heading">
+                <h2>Hazard distribution</h2>
+                <span className="demo-inline">INCLUDES DEMO</span>
+              </div>
+              <div className="hazard-chart">
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={hazardData} layout="vertical" margin={{ left: 0, right: 18 }}>
+                    <XAxis type="number" hide allowDecimals={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={104}
+                      tick={{ fill: "#a9bfb8", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#ffffff06" }}
+                      contentStyle={{
+                        background: "#172B36",
+                        border: "1px solid #3b515a",
+                        borderRadius: 8,
+                        color: "#D9E8E2",
+                      }}
+                    />
+                    <Bar dataKey="count" barSize={14} radius={[0, 3, 3, 0]}>
+                      {hazardData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
                       ))}
-                    </Pie>
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
-                <div className="donut-label">
-                  <strong>{active.length}</strong>
-                  <small>ACTIVE</small>
+              </div>
+              <div className="chart-foot">{incidents.length} total records · selected district</div>
+            </section>
+            <section className="panel">
+              <div className="panel-heading">
+                <h2>Response progress</h2>
+                <span className="small muted">{incidents.length} incidents</span>
+              </div>
+              <div className="response-chart">
+                <div className="donut-wrap">
+                  <ResponsiveContainer width="100%" height={150}>
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        dataKey="value"
+                        innerRadius={48}
+                        outerRadius={63}
+                        paddingAngle={5}
+                        stroke="none"
+                      >
+                        {statusData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="donut-label">
+                    <strong>{active.length}</strong>
+                    <small>ACTIVE</small>
+                  </div>
+                </div>
+                <div className="chart-legend">
+                  {statusData.map((entry) => (
+                    <div key={entry.name}>
+                      <span>
+                        <i style={{ background: entry.color }} />
+                        {entry.name}
+                      </span>
+                      <strong>{entry.value}</strong>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="chart-legend">
-                {statusData.map((entry) => (
-                  <div key={entry.name}>
-                    <span>
-                      <i style={{ background: entry.color }} />
-                      {entry.name}
-                    </span>
-                    <strong>{entry.value}</strong>
-                  </div>
+              <div className="chart-foot">Response status is independent of verification</div>
+            </section>
+            <section className="panel">
+              <div className="panel-heading">
+                <h2>Recent activity</h2>
+                <span className="small muted">AUDIT TRAIL</span>
+              </div>
+              <div className="activity-feed">
+                {activity.map((event) => (
+                  <Link href={`/incidents/${event.incidentId}`} key={event.id}>
+                    <span className="activity-dot" />
+                    <div>
+                      <strong>{event.message.split(";")[0]}</strong>
+                      <small>
+                        {event.incidentId} · {relativeTime(event.at)} {event.demo && "· DEMO"}
+                      </small>
+                    </div>
+                  </Link>
                 ))}
               </div>
-            </div>
-            <div className="chart-foot">Response status is independent of verification</div>
-          </section>
-          <section className="panel">
-            <div className="panel-heading">
-              <h2>Recent activity</h2>
-              <span className="small muted">AUDIT TRAIL</span>
-            </div>
-            <div className="activity-feed">
-              {activity.map((event) => (
-                <Link href={`/incidents/${event.incidentId}`} key={event.id}>
-                  <span className="activity-dot" />
-                  <div>
-                    <strong>{event.message.split(";")[0]}</strong>
-                    <small>
-                      {event.incidentId} · {relativeTime(event.at)} {event.demo && "· DEMO"}
-                    </small>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        </details>
         <section className="panel recent-incidents">
           <div className="panel-heading">
             <div>

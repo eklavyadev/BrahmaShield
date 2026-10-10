@@ -15,7 +15,6 @@ import {
   Menu,
   ArrowUpRight,
   RefreshCw,
-  Shield,
   WifiOff,
   MapPin,
 } from "lucide-react";
@@ -23,12 +22,12 @@ import { useApp } from "./provider";
 import { districtNames } from "@/lib/domain";
 import { relativeTime } from "./ui";
 const navigation = [
-  { href: "/dashboard", label: "Situation room", icon: LayoutDashboard },
-  { href: "/map", label: "Risk map", icon: Map },
-  { href: "/alerts", label: "Alert center", icon: Bell },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/map", label: "Map", icon: Map },
+  { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/incidents", label: "Incidents", icon: ClipboardList },
-  { href: "/response", label: "Response teams", icon: RadioTower },
-  { href: "/assistant", label: "Gemma assistant", icon: Sparkles },
+  { href: "/response", label: "Responders", icon: RadioTower },
+  { href: "/assistant", label: "Assistant", icon: Sparkles },
   { href: "/preparedness", label: "Preparedness", icon: BookOpen },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -56,10 +55,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Image src="/icon.svg" width={36} height={36} alt="" />
           <div>
             Brahma<span>Shield</span>
-            <small>DISASTER RESILIENCE PLATFORM</small>
+            <small>NORTHEAST INDIA</small>
           </div>
         </Link>
-        <div className="workspace-label">OPERATIONS WORKSPACE</div>
         <nav aria-label="Main navigation">
           {navigation.map((item) => (
             <Link
@@ -73,27 +71,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {item.href === "/incidents" && pending > 0 && (
                 <span className="nav-count">{pending}</span>
               )}
-              {item.href === "/assistant" && <span className="ai-tag">AI</span>}
             </Link>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="region-card">
-            <div className="eyebrow">
-              <MapPin size={12} /> MONITORING REGION
-            </div>
-            <strong>Northeast India</strong>
-            <p>Assam · Brahmaputra basin</p>
-            <span className="small teal">
-              <span className="status-dot" /> Prototype workspace
-            </span>
-          </div>
           <Link className="button report-nav" href="/report" onClick={() => setDrawer(false)}>
             <MessageSquarePlus size={17} /> Report a hazard <ArrowUpRight size={16} />
           </Link>
-          <div className="sidebar-foot">
-            <Shield size={13} /> Community first. Always.
-          </div>
         </div>
       </aside>
       <div className="app-main">
@@ -155,8 +139,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <div className="context-bar">
           <span>
-            <span className="demo-chip">PROTOTYPE</span> Simulated alerts & resources · community
-            reports require review
+            <span className="demo-chip">PROTOTYPE</span> Demo alerts · reports need review
           </span>
           <label className="region-select">
             <MapPin size={13} />
@@ -175,10 +158,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <footer className="app-footer">
-          <span>
-            BrahmaShield <span className="muted">/</span> See risk early. Coordinate with
-            confidence.
-          </span>
+          <span>BrahmaShield · Northeast India</span>
           <span>No live monitoring or emergency dispatch · All times IST</span>
         </footer>
       </div>

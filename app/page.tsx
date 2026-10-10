@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Radio, Languages, ShieldCheck, Workflow, MapPinned } from "lucide-react";
+import { ArrowRight, Languages, ShieldCheck, Workflow, MapPinned } from "lucide-react";
 export default function Home() {
   return (
     <div className="landing">
@@ -22,24 +22,6 @@ export default function Home() {
         <Link className="button" href="/report">
           Report a hazard <MapPinned size={17} />
         </Link>
-      </div>
-      <div className="landing-visual">
-        <div className="mini-flow">
-          <Radio />
-          <span>Community report</span>
-          <ArrowRight />
-          <Languages />
-          <span>Gemma interpretation</span>
-          <ArrowRight />
-          <ShieldCheck />
-          <span>Human review</span>
-          <ArrowRight />
-          <Workflow />
-          <span>Coordinated response</span>
-        </div>
-        <div className="landing-caption">
-          ONE REGION. ONE SHARED PICTURE.<span>Assam / Brahmaputra basin</span>
-        </div>
       </div>
       <div className="three-columns">
         <article className="panel padded">

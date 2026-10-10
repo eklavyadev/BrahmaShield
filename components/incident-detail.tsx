@@ -116,9 +116,9 @@ export function IncidentDetail({ id }: { id: string }) {
                           Evidence:{" "}
                           {report.quality.evidence === "photo"
                             ? "Private photo attached"
-                            : "Text only; photo optional"}{" "}
-                          · {label(report.quality.observationSource)} · reported impact{" "}
-                          {report.quality.reportedImpact}/3
+                            : "Text-only legacy report"}{" "}
+                          · {label(report.quality.observationSource)} · reported severity:{" "}
+                          {["Low", "Moderate", "Severe"][report.quality.reportedImpact - 1]}
                         </p>
                         <p>
                           Location: {label(report.quality.locationMethod)}
@@ -344,7 +344,9 @@ export function IncidentDetail({ id }: { id: string }) {
                 {!responder ? (
                   <div className="locked-state">
                     <LockKeyhole size={25} />
-                    <p>Evidence and response actions are available only to authorized responders.</p>
+                    <p>
+                      Evidence and response actions are available only to authorized responders.
+                    </p>
                     <small>Review and response changes are protected on the server.</small>
                   </div>
                 ) : (
