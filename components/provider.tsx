@@ -1,0 +1,50 @@
+"use client";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { Snapshot } from "@/lib/domain";
+
+interface AppState {
+  data: Snapshot | null;
+  loading: boolean;
+  error: string;
+  online: boolean;
+  responder: boolean;
+  demoLogin: boolean;
+  region: string;
+  setRegion: (region: string) => void;
+  refresh: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
+  lastSynced: string | null;
+}
+const Context = createContext<AppState | null>(null);
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [data, setData] = useState<Snapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [online, setOnline] = useState(true);
+  const [responder, setResponder] = useState(false);
+  const [demoLogin, setDemoLogin] = useState(false);
+  const [region, setRegion] = useState("All districts");
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const refresh = useCallback(async () => {
+    try {
+      const response = await fetch("/api/snapshot", { cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load the shared incident data.");
+      const next: Snapshot = await response.json();
+      setData(next); setError(""); setLastSynced(new Date().toISOString());
+    } catch (error) { setError(error instanceof Error ? error.message : "Connection unavailable."); }
+    finally { setLoading(false); }
+  }, []);
+  const refreshAuth = useCallback(async () => {
+    try { const response = await fetch("/api/auth", { cache: "no-store" }); const auth = await response.json(); setResponder(auth.responder === true); setDemoLogin(auth.demoLogin === true); } catch { setResponder(false); }
+  }, []);
+  useEffect(() => {
+    const updateOnline = () => { setOnline(navigator.onLine); if (navigator.onLine) { void refresh(); void refreshAuth(); } };
+    updateOnline();
+    const interval = setInterval(() => { if (navigator.onLine) void refresh(); }, 15000);
+    window.addEventListener("online", updateOnline); window.addEventListener("offline", updateOnline);
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    return () => { clearInterval(interval); window.removeEventListener("online", updateOnline); window.removeEventListener("offline", updateOnline); };
+  }, [refresh, refreshAuth]);
+  return <Context.Provider value={{ data, loading, error, online, responder, demoLogin, region, setRegion, refresh, refreshAuth, lastSynced }}>{children}</Context.Provider>;
+}
+export function useApp() { const value = useContext(Context); if (!value) throw new Error("Missing AppProvider"); return value; }
