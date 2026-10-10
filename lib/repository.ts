@@ -116,6 +116,7 @@ export function submitReport(
           quality,
           declarationAcceptedAt: now,
           declarationVersion: "brahmashield-prototype-v1",
+          gpsCapturedAt: input.gpsCapturedAt,
         },
       ],
       history: [

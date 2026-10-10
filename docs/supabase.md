@@ -12,6 +12,10 @@ Cloud initialization starts empty. `SEED_DEMO_DATA=true` opts into simulated exa
 
 Responder access uses existing Supabase email/password accounts and an active entry in `bs_responder_memberships`. Session tokens are stored in HttpOnly cookies and checked through Supabase Auth's `/user` endpoint rather than trusting decoded JWT fields. This handles the project's asymmetric signing keys without relying on a cached client claim. Supplied `SUPABASE_JWKS_URL` is retained for future local verification; the current authorization path uses Auth directly. Membership is checked on each protected request, and actions record the authenticated user ID. No public signup or automatic role grants exist.
 
+The visible responder sign-in dialog was removed at the user's request. The protected authentication API remains available for an operator application or later access flow; public visitors cannot mutate response states or fetch private photos.
+
+Public reporting requires a firsthand observation, photo, GPS source, accuracy within 200 metres, and a GPS fix no older than five minutes. The UI has no coordinate fields or selectable reporting pin. An offline retry must obtain fresh GPS if the fix has aged; it refuses delivery if the device is no longer within 200 metres of the stored site. Browser-provided GPS can still be spoofed, so these controls enforce the normal flow rather than certify physical presence.
+
 An administrator can provision an existing responder account with:
 
 ```sql

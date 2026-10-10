@@ -15,15 +15,15 @@ npm run dev
 
 Open http://localhost:3000/dashboard. No credentials are needed for the local prototype. Data is seeded on first use and persists in `.data/brahmashield.sqlite`; uploads live in `.data/uploads`. Those files are ignored by Git.
 
-Use **Observer → Enter local demo workspace** to try the server-protected responder workflow in development. This is explicit local demonstration access, not production identity management. Public reports start unverified and medium priority. An operator can change priority, verify evidence, assign a team, start a response, and record resolution. Assignments never contact an external team.
+Public reports start unverified and medium priority. The responder sign-in dialog and profile button have been removed from the interface at the user's request. Responder mutations and private photos still require backend authorization; removing the dialog does not grant public access. An authorized operator can change priority, verify evidence, assign a team, start a response, and record resolution. Assignments never contact an external team.
 
 ## What works
 
 - Landing page, situation room, OSM map, alert center, community reporting, incident register/detail, response console, Gemma workspace, and preparedness center.
 - Consistent persisted records across every screen, with 15-second polling and immediate refetch after actions.
 - OpenStreetMap raster tiles through Leaflet, OSM attribution, independent hazard/shelter layers, clickable incident popups, zoom, fit-to-records, and accessible list fallback.
-- Validated English/Assamese report form, device geolocation with manual map/coordinate fallback, optional JPEG/PNG evidence, and a trackable incident ID.
-- Roadwatch-inspired reporting: hazard-specific impact, firsthand/secondhand observations, GPS accuracy, photo preview, truthful-report declaration, and consent. Low GPS accuracy is a review signal, never a reason to ask someone to approach danger.
+- Validated English/Assamese on-site report form, required fresh device GPS (accuracy within 200 metres), a fixed pin, required photo evidence, and a trackable incident ID. Manual/map coordinates and secondhand submissions are rejected by the public API.
+- Roadwatch-inspired reporting: hazard-specific impact, firsthand observations, photo preview, truthful-report declaration, and consent. GPS location cannot be edited in the interface. Browser GPS can be deliberately spoofed; these checks are not hardware proof of presence. Never approach danger to collect evidence or improve reception.
 - Server-side intake tokens bound to an anonymous device cookie, a honeypot, and device/network request limits. Matching text/location/time, reused images, repetitive wording, and excessive links flag reports for triage. Possible duplicates remain separate as potential corroboration; neither AI nor spam scoring verifies a report.
 - Flagged submissions are visible only to their submitting browser and responders until verified. Their AI jobs are held until a responder starts review. Private image digests and device hashes never appear in API snapshots.
 - Images are re-encoded on the client to reduce size and remove metadata; upload magic bytes and size are checked on the server. Photos require responder access.
@@ -34,7 +34,7 @@ Use **Observer → Enter local demo workspace** to try the server-protected resp
 - IndexedDB report drafts and queued submissions. A validated offline report retries when the open reporting page reconnects or is reopened. The interface only shows delivery after the server acknowledges it. Idempotency keys prevent duplicate retry submissions.
 - Production-only service worker with cached previously visited report/preparedness pages, local static assets, and an offline fallback. APIs and external OSM tiles are never cached by the service worker.
 - Source-grounded preparedness selection, device-persistent emergency-kit checklist, and optional browser speech synthesis in English.
-- Responsive layouts, accessible labels, keyboard focus states, reduced-motion support, and a keyboard-trapped responder sign-in dialog.
+- Responsive layouts, accessible labels, keyboard focus states, and reduced-motion support.
 
 ## Gemma configuration
 

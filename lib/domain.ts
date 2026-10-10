@@ -56,6 +56,7 @@ export interface IncidentReport {
   evidenceDigest?: string;
   declarationAcceptedAt?: string;
   declarationVersion?: string;
+  gpsCapturedAt?: string;
 }
 export interface Incident {
   id: string;

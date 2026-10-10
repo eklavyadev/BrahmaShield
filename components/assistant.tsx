@@ -68,7 +68,7 @@ export function AssistantPage() {
       >
         <span className={`badge ${data?.aiMode === "live" ? "priority-low" : "priority-medium"}`}>
           <Sparkles size={13} />
-          {data?.aiMode === "live" ? "Live Gemma mode" : "Explicit demo mode"}
+          {data?.aiMode === "live" ? "Gemma inference configured" : "Explicit demo mode"}
         </span>
       </PageTitle>
       <div className="assistant-layout">

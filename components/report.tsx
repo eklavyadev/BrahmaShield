@@ -61,12 +61,14 @@ export function ReportPage() {
       .then((saved) => {
         if (saved) {
           setForm({ ...initial, ...saved });
-          setConfirmedLocation(saved.pending === true);
+          setConfirmedLocation(false);
           setNotice("A saved draft was restored from this device.");
           if (saved.pending) {
             const parsed = onSiteReportSchema.safeParse(saved);
-            if (parsed.success) setQueued(parsed.data);
-            else
+            if (parsed.success) {
+              setQueued(parsed.data);
+              setConfirmedLocation(true);
+            } else
               setError(
                 "Refresh your device GPS and attach a photo before submitting this saved draft.",
               );
@@ -476,7 +478,6 @@ export function ReportPage() {
                   required={!form.imageData}
                   onChange={(event) => {
                     const file = event.target.files?.[0];
-                    event.target.value = "";
                     void upload(file);
                   }}
                 />

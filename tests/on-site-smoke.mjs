@@ -46,8 +46,8 @@ for (const change of [
 ])
   assert.equal((await submit(change)).status, 400);
 const response = await submit();
-assert.equal(response.status, 201);
 const saved = await response.json();
+assert.equal(response.status, 201, saved.error);
 assert.equal((await submit()).status, 200);
 console.log(
   `On-site HTTP checks passed: manual/map/stale/inaccurate/missing-photo rejected; GPS photo report saved idempotently (${saved.id}). TEST record retained.`,

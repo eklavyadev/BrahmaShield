@@ -39,8 +39,11 @@ const payload = {
   observedAt: new Date().toISOString(),
   language: "en",
   declaration: true,
-  locationMethod: "manual",
-  gpsAccuracyM: null,
+  locationMethod: "gps",
+  gpsAccuracyM: 20,
+  gpsCapturedAt: new Date().toISOString(),
+  imageData:
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
   observationSource: "first_hand",
   impactLevel: 2,
   website: "",

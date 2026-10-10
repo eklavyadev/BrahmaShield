@@ -140,6 +140,7 @@ export async function cloudSubmit(input: ReportInput, owner: string) {
             quality,
             declarationAcceptedAt: now,
             declarationVersion: "brahmashield-prototype-v1",
+            gpsCapturedAt: input.gpsCapturedAt,
           },
         ],
         history: [

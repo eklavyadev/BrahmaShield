@@ -13,7 +13,6 @@ import {
   Sparkles,
   BookOpen,
   Menu,
-  X,
   ArrowUpRight,
   RefreshCw,
   Shield,
