@@ -1,4 +1,5 @@
 import type { Snapshot } from "./domain";
+import { canViewReportPhoto } from "./photo-access";
 export function projectSnapshot(
   state: Snapshot,
   responder: boolean,
@@ -18,6 +19,7 @@ export function projectSnapshot(
         ...incident,
         reports: incident.reports.map((report) => {
           const copy = { ...report };
+          copy.canViewPhoto = canViewReportPhoto(incident, report, responder, ownerHash);
           delete copy.reporterDeviceHash;
           delete copy.evidenceDigest;
           return copy;

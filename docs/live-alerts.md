@@ -20,6 +20,8 @@ Incident overrides require a reason, retain original report evidence, record pre
 
 Authorized operators publish camp, food-distribution and initiative updates from `/relief`. Include an accurate source, location and validity time, and update or close outdated entries. Quantities describe reported availability, not reservations. No camp capacity or distribution schedule is fabricated. The page also links official Assam situation reports and assistance information.
 
-These records use the existing SQLite snapshot or Supabase `bs_state` transaction, including optimistic revision checks. No additional Supabase migration is required for this update. Public projections omit private evidence and moderation-held reports.
+These records use the existing SQLite snapshot or Supabase `bs_state` transaction, including optimistic revision checks. No additional Supabase migration is required for this update. Public projections omit moderation-held reports except for their uploader and authorities. Photo access is enforced independently on the server. Legacy photos remain private; the submitting browser and authorized authorities can view them. New reports include optional public-photo consent, recorded with a timestamp. Consented photos display on public report cards and incident details only when the report is eligible for public viewing. The storage bucket stays private.
 
 The Safety page describes public report coverage and reported impacts. There is currently no verified unaffected-area dataset or safe-route service. Emergency buttons offer phone links and calling instructions; selecting the navigation button does not place a call automatically.
+
+The authority review queue uses Pending, Approved and Rejected tabs with photo cards, severity, timestamps and search. Review/Approve/Reject/Move to pending controls open the evidence editor and prepare a proposed change. Record a reason and save to apply it. No reports or evidence are permanently deleted.

@@ -1,6 +1,38 @@
 export type Language = "en" | "as" | "hi";
 // Original community reports, source names and external bulletins remain unchanged.
 export const translations: Record<string, [string, string]> = {
+  "Report review": ["প্ৰতিবেদন পৰ্যালোচনা", "रिपोर्ट समीक्षा"],
+  Pending: ["পৰ্যালোচনাৰ অপেক্ষাত", "लंबित"],
+  Approved: ["অনুমোদিত", "स्वीकृत"],
+  Rejected: ["প্ৰত্যাখ্যাত", "अस्वीकृत"],
+  "All reports": ["সকলো প্ৰতিবেদন", "सभी रिपोर्ट"],
+  Approve: ["অনুমোদন কৰক", "स्वीकार करें"],
+  Reject: ["প্ৰত্যাখ্যান কৰক", "अस्वीकार करें"],
+  "Move to pending": ["অপেক্ষাত ৰাখক", "लंबित करें"],
+  "Review evidence": ["প্ৰমাণ পৰ্যালোচনা কৰক", "साक्ष्य देखें"],
+  "Reported severity": ["প্ৰতিবেদিত তীব্ৰতা", "रिपोर्ट की गंभीरता"],
+  "No reports match this view.": [
+    "এই তালিকাত কোনো প্ৰতিবেদন নাই।",
+    "इस सूची में कोई रिपोर्ट नहीं है।",
+  ],
+  "Uploaded report photo · select to view full size": [
+    "আপলোড কৰা ফটো · সম্পূৰ্ণ আকাৰত চাবলৈ বাছক",
+    "अपलोड की गई फोटो · पूरी देखने के लिए चुनें",
+  ],
+  "Photo unavailable. Check your connection and photo access.": [
+    "ফটো উপলব্ধ নহয়। সংযোগ আৰু অনুমতি পৰীক্ষা কৰক।",
+    "फोटो उपलब्ध नहीं है। कनेक्शन और अनुमति जाँचें।",
+  ],
+  "I’m at this site and my report is truthful. I consent to storing my photo, GPS and description for review. Text and location may be public. My photo stays private unless I choose to share it below.":
+    [
+      "মই এই ঠাইত আছোঁ আৰু মোৰ প্ৰতিবেদন সত্য। পৰ্যালোচনাৰ বাবে ফটো, GPS আৰু বিৱৰণ সংৰক্ষণত সন্মতি দিছোঁ। লেখা আৰু ঠাই ৰাজহুৱা হ’ব পাৰে। তলত সন্মতি নিদিলে ফটো ব্যক্তিগত থাকিব।",
+      "मैं घटनास्थल पर हूँ और मेरी रिपोर्ट सत्य है। समीक्षा के लिए फोटो, GPS और विवरण रखने की सहमति देता हूँ। विवरण और स्थान सार्वजनिक हो सकते हैं। नीचे सहमति दिए बिना फोटो निजी रहेगी।",
+    ],
+  "Show my photo publicly with this report (optional). Avoid faces, private documents and other identifying details. Reports held for review stay private until verified.":
+    [
+      "এই প্ৰতিবেদনৰ ফটো ৰাজহুৱা কৰক (ঐচ্ছিক)। মুখ, ব্যক্তিগত নথি আৰু পৰিচয়ৰ তথ্য এৰাই চলক। পৰ্যালোচনাধীন প্ৰতিবেদন যাচাই নোহোৱালৈ ব্যক্তিগত থাকিব।",
+      "इस रिपोर्ट के साथ मेरी फोटो सार्वजनिक करें (वैकल्पिक)। चेहरे, निजी दस्तावेज़ और पहचान की जानकारी से बचें। समीक्षा के लिए रोकी गई रिपोर्ट सत्यापन तक निजी रहेंगी।",
+    ],
   "Authority dashboard": ["কৰ্তৃপক্ষৰ ডেশ্বব’ৰ্ড", "प्राधिकरण डैशबोर्ड"],
   "Incident override": ["ঘটনাৰ অৱস্থা সংশোধন", "घटना की स्थिति बदलें"],
   "Authority advisory": ["কৰ্তৃপক্ষৰ পৰামৰ্শ", "प्राधिकरण की सलाह"],

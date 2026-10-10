@@ -39,6 +39,10 @@ export interface IncidentReport {
   receivedAt: string;
   source: "community" | "demo";
   imagePath?: string;
+  publicPhotoConsent?: boolean;
+  publicPhotoConsentAt?: string;
+  /** Viewer-specific API projection, never used for server authorization. */
+  canViewPhoto?: boolean;
   analysis?: AIAnalysis;
   analysisState: "pending" | "held" | "complete" | "failed";
   quality?: {
@@ -243,6 +247,7 @@ export const reportSchema = z.object({
     ),
   language: z.enum(["en", "as", "mixed"]),
   imageData: z.string().max(1500000).optional(),
+  publicPhotoConsent: z.boolean().optional(),
   declaration: z.literal(true, {
     error:
       "Confirm that your report is truthful and consent to the described use of the report location.",

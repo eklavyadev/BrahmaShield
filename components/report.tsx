@@ -24,6 +24,7 @@ const initial: ReportDraft = {
   observedAt: "",
   language: "en",
   declaration: false,
+  publicPhotoConsent: false,
   locationMethod: "gps",
   gpsAccuracyM: null,
   observationSource: "first_hand",
@@ -432,9 +433,19 @@ export function ReportPage() {
               <span>
                 <T
                   text={
-                    "I’m at this site and my report is truthful. I consent to storing my photo, GPS and description for review. Text and location may be public; photos are restricted to authorized responders."
+                    "I’m at this site and my report is truthful. I consent to storing my photo, GPS and description for review. Text and location may be public. My photo stays private unless I choose to share it below."
                   }
                 />
+              </span>
+            </label>
+            <label className="report-declaration">
+              <input
+                type="checkbox"
+                checked={form.publicPhotoConsent === true}
+                onChange={(event) => update("publicPhotoConsent", event.target.checked)}
+              />
+              <span>
+                <T text="Show my photo publicly with this report (optional). Avoid faces, private documents and other identifying details. Reports held for review stay private until verified." />
               </span>
             </label>
             <div className="honeypot" aria-hidden="true">

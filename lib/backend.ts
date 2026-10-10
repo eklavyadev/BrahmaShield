@@ -9,9 +9,11 @@ import type {
   AuthorityAdvisoryInput,
 } from "./domain";
 import { weatherFeed } from "./weather-feed";
+export const storedSnapshot = async () =>
+  cloudEnabled() ? cloud.cloudSnapshot() : local.snapshot();
 export const snapshot = async () => {
   const [state, feed] = await Promise.all([
-    cloudEnabled() ? cloud.cloudSnapshot() : Promise.resolve(local.snapshot()),
+    storedSnapshot(),
     process.env.ALERT_SOURCE === "demo" ? Promise.resolve(undefined) : weatherFeed(),
   ]);
   const authorityAlerts = (state.authorityAdvisories || []).filter(

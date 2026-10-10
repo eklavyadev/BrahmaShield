@@ -137,3 +137,25 @@ test("authority verification releases a held AI job and retains the authority ac
   assert.equal(updated.reports[0].analysisState, "pending");
   assert.equal(claimJob()?.incident_id, held.incident.id);
 });
+test("photo publication consent and timestamp persist with uploaded evidence", () => {
+  const uploaded = submitReport(
+    reportSchema.parse({
+      ...payload,
+      clientId: crypto.randomUUID(),
+      description: "TEST photo publication consent for an independently described incident.",
+      publicPhotoConsent: true,
+      imageData:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+    }),
+  );
+  const stored = snapshot().incidents.find((item) => item.id === uploaded.incident.id)!.reports[0];
+  assert.ok(stored.imagePath);
+  assert.equal(stored.publicPhotoConsent, true);
+  assert.ok(stored.publicPhotoConsentAt);
+  assert.equal(
+    snapshot().incidents.find((item) =>
+      item.reports.some((report) => report.description === payload.description),
+    )!.reports[0].publicPhotoConsent,
+    false,
+  );
+});

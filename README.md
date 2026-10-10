@@ -15,7 +15,7 @@ npm run dev
 
 Open http://localhost:3000/dashboard. Public pages need no sign-in. The authority dashboard at `/authority` uses the requested prototype password **1234**; its session is signed and expires after two hours. Data is seeded on first use and persists in `.data/brahmashield.sqlite`; uploads live in `.data/uploads`. Those files are ignored by Git.
 
-Public reports start unverified and medium priority. The responder sign-in dialog and profile button have been removed from the interface at the user's request. Responder mutations and private photos still require backend authorization; removing the dialog does not grant public access. An authorized operator can change priority, verify evidence, assign a team, start a response, and record resolution. Assignments never contact an external team.
+Public reports start unverified and medium priority. The responder sign-in dialog and profile button have been removed from the interface at the user's request. Responder mutations and private photos still require server-side authorization; removing the dialog does not grant public access. An authorized operator can change priority, verify evidence, assign a team, start a response, and record resolution. Assignments never contact an external team.
 
 ## What works
 
@@ -26,7 +26,7 @@ Public reports start unverified and medium priority. The responder sign-in dialo
 - Roadwatch-inspired reporting: hazard-specific impact, firsthand observations, photo preview, truthful-report declaration, and consent. GPS location cannot be edited in the interface. Browser GPS can be deliberately spoofed; these checks are not hardware proof of presence. Never approach danger to collect evidence or improve reception.
 - Server-side intake tokens bound to an anonymous device cookie, a honeypot, and device/network request limits. Matching text/location/time, reused images, repetitive wording, and excessive links flag reports for triage. Possible duplicates remain separate as potential corroboration; neither AI nor spam scoring verifies a report.
 - Flagged submissions are visible only to their submitting browser and responders until verified. Their AI jobs are held until a responder starts review. Private image digests and device hashes never appear in API snapshots.
-- Images are re-encoded on the client to reduce size and remove metadata; upload magic bytes and size are checked on the server. Photos require responder access.
+- Inline photo previews appear on incident details, public report cards when permitted, and the authority review dashboard. Images are re-encoded on the client to reduce size and remove metadata; upload magic bytes and size are checked on the server. Photos are visible to the submitting browser and authorities. New reports may opt in to public photo display; moderation-held photos stay private until verification. Existing uploads remain private.
 - Original reports retained separately from AI output. One tested curated Assamese demonstration example; arbitrary reports are explicitly not translated in demo mode.
 - Server-enforced verification and response lifecycles, evidence notes, an audit history, and optimistic revision checks that reject stale edits.
 - Durable SQLite or Supabase job records, report-first storage, explicit processing/failure states, and operator retry. Jobs run after requests or through `npm run worker`; Supabase jobs use exclusive leases.
@@ -37,7 +37,7 @@ Public reports start unverified and medium priority. The responder sign-in dialo
 - English, Assamese and Hindi selectors for core navigation, forms and guidance. Unsupported interface strings fall back to English; report originals and source bulletins retain their original language.
 - Timestamped Open-Meteo forecasts for eight representative district centres, with explicitly labelled application advisories and stale/unavailable feed states.
 - Opt-in district-filtered browser notifications for new advisories while the app is open.
-- Authority incident overrides with reasons, preserved evidence, revision checks and audit history; separate publish/revise/withdraw controls for authority advisories.
+- Roadwatch-inspired authority review cards with Pending/Approved/Rejected tabs, photo previews, search, and incident overrides with reasons, preserved evidence, revision checks and audit history; separate publish/revise/withdraw controls for authority advisories.
 - Published relief-camp, food-distribution and assistance updates with source links, validity dates and recorded revisions.
 - Responsive layouts, accessible labels, keyboard focus states, and reduced-motion support.
 
@@ -99,7 +99,7 @@ Verification (`unverified / under_review / verified / rejected`) is separate fro
 | `POST /api/authority-advisories`      | Authority-only audited advisory publication                 |
 | `POST /api/relief`                    | Authorized, revision-checked relief updates                 |
 | `POST /api/ai`                        | Interpretation, advisory explanation, preparedness guidance |
-| `GET /api/media/:file`                | Responder-only evidence photo                               |
+| `GET /api/media/:file`                | Consent- and ownership-aware evidence photo                 |
 
 ## Build and verification
 

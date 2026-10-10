@@ -14,12 +14,12 @@ import {
   UserRoundCheck,
   Play,
   RefreshCw,
-  FileImage,
 } from "lucide-react";
 import { useApp } from "./provider";
 import { DataGate, dateTime, HazardIcon, PageTitle, PriorityBadge, VerificationBadge } from "./ui";
 import { IncidentMap } from "./maps/map";
 import { label, priorities, type IncidentAction } from "@/lib/domain";
+import { ReportPhoto } from "./report-photo";
 export function IncidentDetail({ id }: { id: string }) {
   const { data, responder, refresh } = useApp();
   const incident = data?.incidents.find((item) => item.id === id);
@@ -117,7 +117,9 @@ export function IncidentDetail({ id }: { id: string }) {
                         <p>
                           Evidence:{" "}
                           {report.quality.evidence === "photo"
-                            ? "Private photo attached"
+                            ? report.publicPhotoConsent
+                              ? "Public photo attached"
+                              : "Private photo attached"
                             : "Text-only legacy report"}{" "}
                           · {label(report.quality.observationSource)} · reported severity:{" "}
                           {["Low", "Moderate", "Severe"][report.quality.reportedImpact - 1]}
@@ -166,17 +168,17 @@ export function IncidentDetail({ id }: { id: string }) {
                     </div>
                     {report.imagePath && (
                       <div className="attachment-link">
-                        <FileImage size={15} />
-                        {responder ? (
-                          <a
-                            target="_blank"
-                            rel="noreferrer"
-                            href={`/api/media/${report.imagePath}`}
-                          >
-                            View private evidence photo
-                          </a>
+                        {report.canViewPhoto ? (
+                          <ReportPhoto
+                            key={report.imagePath}
+                            file={report.imagePath}
+                            alt={`Reported ${label(incident.hazard)} at ${incident.locationName}`}
+                          />
                         ) : (
-                          <span>Evidence photo · responder access required</span>
+                          <span>
+                            Private evidence photo · available to the submitting browser and
+                            authorized authorities
+                          </span>
                         )}
                       </div>
                     )}

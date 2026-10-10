@@ -24,6 +24,14 @@ const report = () => ({
 test("report validation accepts a complete observation", () => {
   assert.equal(reportSchema.safeParse(report()).success, true);
 });
+test("public photo consent requires an explicit boolean and is omitted for legacy payloads", () => {
+  assert.equal(reportSchema.parse(report()).publicPhotoConsent, undefined);
+  assert.equal(
+    reportSchema.parse({ ...report(), publicPhotoConsent: true }).publicPhotoConsent,
+    true,
+  );
+  assert.equal(reportSchema.safeParse({ ...report(), publicPhotoConsent: "true" }).success, false);
+});
 test("report validation rejects unsupported coordinates and future times", () => {
   assert.equal(reportSchema.safeParse({ ...report(), lat: 91 }).success, false);
   assert.equal(reportSchema.safeParse({ ...report(), lng: 0 }).success, false);

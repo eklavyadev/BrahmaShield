@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LockKeyhole, LogOut, ShieldCheck } from "lucide-react";
 import { useApp } from "./provider";
@@ -18,6 +18,7 @@ import {
   type ResponseStatus,
 } from "@/lib/domain";
 import { Translated as T } from "./language";
+import { ReportPhoto } from "./report-photo";
 type AdvisoryDraft = Omit<AuthorityAdvisoryInput, "id" | "expiresAt"> & {
   id?: string;
   expiresAt: string;
@@ -50,6 +51,31 @@ export function AuthorityDashboard() {
     [responseStatus, setResponseStatus] = useState<ResponseStatus>("new");
   const [reason, setReason] = useState(""),
     [advisory, setAdvisory] = useState<AdvisoryDraft>(emptyAdvisory);
+  const [reviewTab, setReviewTab] = useState("pending");
+  const [search, setSearch] = useState("");
+  const editor = useRef<HTMLFormElement>(null);
+  const reports = (data?.incidents || []).filter(
+    (item) => !item.demo && (region === "All districts" || item.district === region),
+  );
+  const statusGroup = (value: Verification) =>
+    value === "verified" ? "approved" : value === "rejected" ? "rejected" : "pending";
+  const reviewReports = reports.filter(
+    (item) =>
+      (reviewTab === "all" || statusGroup(item.verification) === reviewTab) &&
+      `${item.id} ${item.locationName} ${item.district} ${item.hazard} ${item.reports.map((report) => report.description).join(" ")}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
+  );
+  function prepareReview(id: string, target?: Verification) {
+    choose(id);
+    if (target) {
+      setVerification(target);
+      if (target === "rejected") setResponseStatus("closed");
+      else if (data?.incidents.find((item) => item.id === id)?.verification === "rejected")
+        setResponseStatus("new");
+    }
+    editor.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   useEffect(() => {
     void fetch("/api/authority-auth", { cache: "no-store" })
       .then((r) => r.json())
@@ -230,8 +256,117 @@ export function AuthorityDashboard() {
           Public alerts
         </Link>
       </div>
+      <section className="authority-review">
+        <h2>
+          <T text="Report review" />
+        </h2>
+        <p className="small">
+          <T text="Review the photo and original report. Approve, reject or return to pending by recording evidence and saving the change below." />
+        </p>
+        <div className="filter-bar">
+          <div className="button-row" role="group" aria-label="Report review status">
+            {[
+              ["pending", "Pending"],
+              ["approved", "Approved"],
+              ["rejected", "Rejected"],
+              ["all", "All reports"],
+            ].map(([value, text]) => (
+              <button
+                key={value}
+                className={`button ${reviewTab === value ? "primary" : ""}`}
+                aria-pressed={reviewTab === value}
+                onClick={() => setReviewTab(value)}
+              >
+                <T text={text} /> (
+                {
+                  reports.filter(
+                    (item) => value === "all" || statusGroup(item.verification) === value,
+                  ).length
+                }
+                )
+              </button>
+            ))}
+          </div>
+          <input
+            className="authority-search"
+            aria-label="Search reports"
+            placeholder="Search location, district or report…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+        <div className="authority-report-grid">
+          {reviewReports.map((item) => (
+            <article className="panel padded" key={item.id}>
+              {item.reports
+                .filter((report) => report.imagePath)
+                .slice(0, 1)
+                .map((report) => (
+                  <ReportPhoto
+                    key={report.id}
+                    file={report.imagePath!}
+                    alt={`Evidence at ${item.locationName}`}
+                    compact
+                  />
+                ))}
+              <h3>{item.locationName}</h3>
+              <p className="small">
+                {item.id} · {item.district} · {label(item.hazard)}
+              </p>
+              <VerificationBadge value={item.verification} />
+              <p>
+                <T text="Reported severity" />:{" "}
+                {["Low", "Moderate", "Severe"][(item.reports[0]?.quality?.reportedImpact || 2) - 1]}
+              </p>
+              <p className="report-excerpt">{item.reports[0]?.description.slice(0, 220)}</p>
+              <p className="small">{dateTime(item.createdAt)}</p>
+              <div className="button-row">
+                <button
+                  className="button small-button"
+                  disabled={busy}
+                  onClick={() => prepareReview(item.id)}
+                >
+                  <T text="Review evidence" />
+                </button>
+                {item.verification !== "verified" && (
+                  <button
+                    className="button small-button primary"
+                    disabled={busy}
+                    onClick={() => prepareReview(item.id, "verified")}
+                  >
+                    <T text="Approve" />
+                  </button>
+                )}
+                {item.verification !== "rejected" && (
+                  <button
+                    className="button small-button danger-outline"
+                    disabled={busy}
+                    onClick={() => prepareReview(item.id, "rejected")}
+                  >
+                    <T text="Reject" />
+                  </button>
+                )}
+                {["verified", "rejected"].includes(item.verification) && (
+                  <button
+                    className="button small-button"
+                    disabled={busy}
+                    onClick={() => prepareReview(item.id, "unverified")}
+                  >
+                    <T text="Move to pending" />
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+        {!reviewReports.length && (
+          <p className="empty-state">
+            <T text="No reports match this view." />
+          </p>
+        )}
+      </section>
       <div className="authority-grid">
-        <form className="panel padded" onSubmit={(e) => void override(e)}>
+        <form ref={editor} className="panel padded" onSubmit={(e) => void override(e)}>
           <h2>
             <T text={"Incident override"} />
           </h2>
@@ -252,6 +387,16 @@ export function AuthorityDashboard() {
             </label>
             {incident && (
               <>
+                {incident.reports
+                  .filter((report) => report.imagePath)
+                  .map((report) => (
+                    <ReportPhoto
+                      key={report.id}
+                      file={report.imagePath!}
+                      alt={`Evidence at ${incident.locationName}`}
+                    />
+                  ))}
+                <blockquote>{incident.reports[0]?.description}</blockquote>
                 <div className="button-row">
                   <VerificationBadge value={incident.verification} />
                   <Link href={`/incidents/${incident.id}`} className="text-link">

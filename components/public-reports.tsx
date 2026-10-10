@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useApp } from "./provider";
 import { HazardIcon, VerificationBadge, dateTime } from "./ui";
 import { Translated as T } from "./language";
+import { ReportPhoto } from "./report-photo";
 export function PublicReports() {
   const { data, region } = useApp();
   const [reviewedOnly, setReviewedOnly] = useState(false);
@@ -38,11 +39,22 @@ export function PublicReports() {
       </div>
       <p className="small">
         Original community observations. Human-reviewed reports carry a verification badge; other
-        reports still need checking. Evidence photos remain private.
+        reports still need checking. Public photos appear only with the uploader’s consent.
       </p>
       <div className="public-report-grid">
         {incidents.map((incident) => (
           <article className="panel padded" key={incident.id}>
+            {incident.reports
+              .filter((report) => report.imagePath && report.canViewPhoto)
+              .slice(0, 1)
+              .map((report) => (
+                <ReportPhoto
+                  key={report.id}
+                  file={report.imagePath!}
+                  alt={`Community report at ${incident.locationName}`}
+                  compact
+                />
+              ))}
             <div className="public-report-top">
               <HazardIcon hazard={incident.hazard} size={25} />
               <VerificationBadge value={incident.verification} />
