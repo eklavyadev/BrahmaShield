@@ -14,6 +14,15 @@ const colors: Record<Hazard, string> = {
   extreme_weather: "#b29aff",
 };
 const allLayers = ["flood", "waterlogging", "landslide", "extreme_weather", "shelters"];
+function focusImpactArea(
+  map: Leaflet.Map,
+  points: [number, number][],
+  selected?: [number, number],
+) {
+  if (selected) map.setView(selected, 12, { animate: false });
+  else if (points.length) map.fitBounds(points, { padding: [32, 32], maxZoom: 12, animate: false });
+  else map.setView([26.9, 93], 8, { animate: false });
+}
 export function MapView({
   incidents,
   shelters = [],
@@ -40,6 +49,18 @@ export function MapView({
   const [listView, setListView] = useState(false);
   const selectedLat = selected?.[0];
   const selectedLng = selected?.[1];
+  const visibleIncidents = incidents.filter(
+    (item) => layers.includes(item.hazard) && item.verification !== "rejected",
+  );
+  const activeIncidents = visibleIncidents.filter(
+    (item) => !["resolved", "closed"].includes(item.response),
+  );
+  // Coordinate changes refocus the view; routine polling preserves the user's pan/zoom.
+  const impactBoundsKey = JSON.stringify(
+    (activeIncidents.length ? activeIncidents : visibleIncidents)
+      .map((item) => [item.lat, item.lng])
+      .sort(([latA, lngA], [latB, lngB]) => latA - latB || lngA - lngB),
+  );
   useEffect(() => {
     pickerRef.current = picker;
   }, [picker]);
@@ -53,7 +74,7 @@ export function MapView({
         const instance = L.map(root.current, {
           zoomControl: false,
           scrollWheelZoom: false,
-        }).setView([26.9, 93.0], 7);
+        }).setView([26.9, 93.0], 8);
         L.control.zoom({ position: "bottomright" }).addTo(instance);
         const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution:
@@ -144,16 +165,17 @@ export function MapView({
       }).addTo(group);
   }, [incidents, shelters, ready, layers, selected]);
   useEffect(() => {
-    if (ready && selectedLat !== undefined && selectedLng !== undefined) {
-      map.current?.setView([selectedLat, selectedLng], 10, { animate: false });
-    }
-  }, [ready, selectedLat, selectedLng]);
+    if (!ready || !map.current) return;
+    focusImpactArea(
+      map.current,
+      JSON.parse(impactBoundsKey),
+      selectedLat !== undefined && selectedLng !== undefined
+        ? [selectedLat, selectedLng]
+        : undefined,
+    );
+  }, [ready, impactBoundsKey, selectedLat, selectedLng]);
   function fit() {
-    const points: [number, number][] = incidents
-      .filter((item) => item.verification !== "rejected")
-      .map((item) => [item.lat, item.lng]);
-    if (points.length) map.current?.fitBounds(points, { padding: [40, 40], maxZoom: 11 });
-    else map.current?.setView(selected || [26.9, 93], selected ? 10 : 7);
+    if (map.current) focusImpactArea(map.current, JSON.parse(impactBoundsKey), selected);
   }
   return (
     <div className={`map-frame ${picker ? "map-picker" : ""}`} style={{ height }}>
