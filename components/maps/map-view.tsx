@@ -133,7 +133,7 @@ export function MapView({
         marker.bindPopup(popup).addTo(group);
         marker.getElement()?.setAttribute("aria-label", `${shelter.name} · demo shelter`);
       });
-    if (selected && pickerRef.current)
+    if (selected)
       L.marker(selected, {
         icon: L.divIcon({
           className: "custom-map-marker",
@@ -144,7 +144,7 @@ export function MapView({
       }).addTo(group);
   }, [incidents, shelters, ready, layers, selected]);
   useEffect(() => {
-    if (ready && pickerRef.current && selectedLat !== undefined && selectedLng !== undefined) {
+    if (ready && selectedLat !== undefined && selectedLng !== undefined) {
       map.current?.setView([selectedLat, selectedLng], 10, { animate: false });
     }
   }, [ready, selectedLat, selectedLng]);
@@ -163,7 +163,9 @@ export function MapView({
         aria-label={
           picker
             ? "Click map to select report location; coordinates can also be entered below"
-            : "OpenStreetMap of incidents in Assam"
+            : selected
+              ? "Read-only map of your device GPS location"
+              : "OpenStreetMap of incidents in Assam"
         }
       />
       {!ready && !mapError && <div className="map-loading">Loading OpenStreetMap…</div>}

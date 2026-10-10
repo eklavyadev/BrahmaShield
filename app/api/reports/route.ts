@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { cookies } from "next/headers";
 import { hashDevice, validIntakeToken } from "@/lib/intake";
-import { reportSchema } from "@/lib/domain";
+import { onSiteReportSchema } from "@/lib/domain";
 import { submitReport } from "@/lib/backend";
 import { assertSameOrigin, failure, rateLimit, readJson } from "@/lib/auth";
 import { processJobs } from "@/lib/ai";
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       );
     rateLimit(`report-device:${hashDevice(device)}`, 10);
     rateLimit(`report-network:${request.headers.get("x-forwarded-for") || "local"}`, 120);
-    const parsed = reportSchema.safeParse(await readJson(request, 1600000));
+    const parsed = onSiteReportSchema.safeParse(await readJson(request, 1600000));
     if (!parsed.success)
       return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
     if (parsed.data.website)

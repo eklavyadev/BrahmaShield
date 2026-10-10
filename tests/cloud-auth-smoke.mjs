@@ -11,11 +11,17 @@ async function admin(path, options = {}) {
     signal: AbortSignal.timeout(20000),
   });
   if (!response.ok) {
-    const error=await response.json().catch(()=>({}));
-    throw new Error(`Test administration request failed (${response.status}, ${error.code||error.error_code||"unknown"}): ${String(error.msg||error.message||error.error_description||"").replaceAll(email,"[test email]").replaceAll(password,"[test password]")}`);
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      `Test administration request failed (${response.status}, ${error.code || error.error_code || "unknown"}): ${String(
+        error.msg || error.message || error.error_description || "",
+      )
+        .replaceAll(email, "[test email]")
+        .replaceAll(password, "[test password]")}`,
+    );
   }
-  const text=await response.text();
-  return text?JSON.parse(text):null;
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 async function app(path, body, method = "POST") {
   const response = await fetch(`${base}${path}`, {

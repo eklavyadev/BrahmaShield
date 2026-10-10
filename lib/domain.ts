@@ -156,11 +156,31 @@ export const reportSchema = z.object({
   }),
   locationMethod: z.enum(["gps", "map", "manual"]).default("manual"),
   gpsAccuracyM: z.number().nonnegative().max(100000).nullable().default(null),
+  gpsCapturedAt: z.string().datetime().optional(),
   observationSource: z.enum(["first_hand", "second_hand"]).default("first_hand"),
   impactLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
   website: z.string().max(200).default(""),
 });
 export type ReportInput = z.infer<typeof reportSchema>;
+export const onSiteReportSchema = reportSchema.extend({
+  locationMethod: z.literal("gps", { error: "Reports must use your current device GPS location." }),
+  gpsAccuracyM: z
+    .number()
+    .nonnegative()
+    .max(200, "GPS accuracy must be within 200 metres. Stay somewhere safe and retry."),
+  gpsCapturedAt: z
+    .string()
+    .datetime()
+    .refine(
+      (value) =>
+        Date.parse(value) <= Date.now() + 60000 && Date.now() - Date.parse(value) <= 300000,
+      "Refresh your device location before submitting.",
+    ),
+  observationSource: z.literal("first_hand", {
+    error: "Only firsthand observations at your current location can be reported.",
+  }),
+  imageData: z.string().min(30, "Attach a photo of the observed hazard.").max(1500000),
+});
 export const actionSchema = z.object({
   revision: z.number().int().nonnegative(),
   action: z.enum([

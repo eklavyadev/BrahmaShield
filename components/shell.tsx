@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Map,
@@ -12,12 +12,9 @@ import {
   RadioTower,
   Sparkles,
   BookOpen,
-  ChevronDown,
   Menu,
   X,
   ArrowUpRight,
-  LogOut,
-  LockKeyhole,
   RefreshCw,
   Shield,
   WifiOff,
@@ -37,81 +34,9 @@ const navigation = [
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const {
-    data,
-    online,
-    responder,
-    demoLogin,
-    authMode,
-    region,
-    setRegion,
-    refreshAuth,
-    refresh,
-    lastSynced,
-  } = useApp();
+  const { data, online, region, setRegion, refresh, lastSynced } = useApp();
   const [drawer, setDrawer] = useState(false);
-  const [login, setLogin] = useState(false);
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
   const [notifications, setNotifications] = useState(false);
-  const dialogRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!login) return;
-    const previous = document.activeElement as HTMLElement | null;
-    const dialog = dialogRef.current;
-    const controls = () =>
-      dialog?.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), a[href]");
-    controls()?.[0]?.focus();
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setLogin(false);
-      if (event.key !== "Tab") return;
-      const items = controls();
-      if (!items?.length) return;
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      previous?.focus();
-    };
-  }, [login]);
-  async function signIn(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: demoLogin ? "demo" : password, email }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      await refreshAuth();
-      await refresh();
-      setLogin(false);
-      setPassword("");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Unable to sign in.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function signOut() {
-    await fetch("/api/auth", { method: "DELETE" });
-    await refreshAuth();
-    await refresh();
-  }
   const pending =
     data?.incidents.filter((item) => ["unverified", "under_review"].includes(item.verification))
       .length || 0;
@@ -227,15 +152,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
-            <button
-              className="profile-button"
-              onClick={() => (responder ? void signOut() : setLogin(true))}
-              aria-label={responder ? "Sign out of responder account" : "Sign in as responder"}
-            >
-              <span className="avatar">{responder ? "OP" : "OB"}</span>
-              <span>{responder ? "Responder" : "Observer"}</span>
-              {responder ? <LogOut size={14} /> : <ChevronDown size={14} />}
-            </button>
           </div>
         </header>
         <div className="context-bar">
@@ -267,69 +183,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span>No live monitoring or emergency dispatch · All times IST</span>
         </footer>
       </div>
-      {login && (
-        <div className="modal-backdrop">
-          <section
-            ref={dialogRef}
-            className="modal panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="login-title"
-          >
-            <button
-              className="modal-close icon-button"
-              aria-label="Close sign-in"
-              onClick={() => setLogin(false)}
-            >
-              <X size={18} />
-            </button>
-            <LockKeyhole className="teal" size={28} />
-            <h2 id="login-title">Responder workspace</h2>
-            <p>Sign in to review evidence, assign teams, and record response actions.</p>
-            {demoLogin && (
-              <div className="notice warning">
-                Local demo access is enabled. Actions are recorded in the prototype; no real
-                response team is dispatched.
-              </div>
-            )}
-            <form onSubmit={signIn}>
-              {authMode === "supabase" && (
-                <label>
-                  Responder email
-                  <input
-                    type="email"
-                    autoComplete="username"
-                    required
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </label>
-              )}
-              {!demoLogin && (
-                <label>
-                  Responder password
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    autoFocus
-                    required
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                  />
-                </label>
-              )}
-              {error && (
-                <p className="form-error" role="alert">
-                  {error}
-                </p>
-              )}
-              <button className="button primary full-width" disabled={busy}>
-                {busy ? "Signing in…" : demoLogin ? "Enter local demo workspace" : "Sign in"}
-              </button>
-            </form>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

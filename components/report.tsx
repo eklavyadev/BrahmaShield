@@ -16,7 +16,9 @@ import {
 import { useApp } from "./provider";
 import { PageTitle } from "./ui";
 import { IncidentMap } from "./maps/map";
-import { districtNames, hazards, label, reportSchema, type ReportInput } from "@/lib/domain";
+import { districtNames, hazards, label, onSiteReportSchema, type ReportInput } from "@/lib/domain";
+import { prepareEvidence } from "@/lib/report-media";
+import { currentReportLocation, nearby } from "@/lib/report-location";
 import { clearDraft, readDraft, saveDraft, type ReportDraft } from "@/lib/offline";
 import { impactLabels } from "@/lib/impact";
 
@@ -32,7 +34,7 @@ const initial: ReportDraft = {
   observedAt: "",
   language: "en",
   declaration: false,
-  locationMethod: "manual",
+  locationMethod: "gps",
   gpsAccuracyM: null,
   observationSource: "first_hand",
   impactLevel: 2,
@@ -53,6 +55,7 @@ export function ReportPage() {
   const [queued, setQueued] = useState<ReportInput | null>(null);
   const attempt = useRef(false);
   const [imageName, setImageName] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
   useEffect(() => {
     readDraft()
       .then((saved) => {
@@ -61,11 +64,11 @@ export function ReportPage() {
           setConfirmedLocation(saved.pending === true);
           setNotice("A saved draft was restored from this device.");
           if (saved.pending) {
-            const parsed = reportSchema.safeParse(saved);
+            const parsed = onSiteReportSchema.safeParse(saved);
             if (parsed.success) setQueued(parsed.data);
             else
               setError(
-                "Saved draft needs the new declaration and report-quality fields before upload.",
+                "Refresh your device GPS and attach a photo before submitting this saved draft.",
               );
           }
         } else
@@ -100,6 +103,15 @@ export function ReportPage() {
       setBusy(true);
       setError("");
       try {
+        if (!payload.gpsCapturedAt || Date.now() - Date.parse(payload.gpsCapturedAt) > 60000) {
+          const location = await currentReportLocation();
+          if (!nearby(location, payload))
+            throw new Error(
+              "You are no longer near the reported site. This report requires on-site submission; do not return to an unsafe area.",
+            );
+          payload = { ...payload, ...location };
+          setForm((previous) => ({ ...previous, ...location }));
+        }
         const intake = await fetch("/api/intake", { cache: "no-store" });
         const challenge = await intake.json();
         if (!intake.ok)
@@ -144,10 +156,10 @@ export function ReportPage() {
     event.preventDefault();
     setError("");
     if (!confirmedLocation) {
-      setError("Please confirm the location using the map, geolocation, or coordinate fields.");
+      setError("Use your device GPS at the site before reporting.");
       return;
     }
-    const parsed = reportSchema.safeParse(form);
+    const parsed = onSiteReportSchema.safeParse(form);
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
       return;
@@ -170,63 +182,32 @@ export function ReportPage() {
   }
   async function upload(file?: File) {
     if (!file) return;
-    if (!["image/png", "image/jpeg"].includes(file.type) || file.size > 5000000) {
-      setError("Choose a PNG or JPEG under 5 MB. Images are resized and stored privately.");
-      return;
-    }
+    setImageBusy(true);
     try {
-      const image = await createImageBitmap(file);
-      const scale = Math.min(1, 1200 / Math.max(image.width, image.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(image.width * scale);
-      canvas.height = Math.round(image.height * scale);
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Image processing is unavailable.");
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      image.close();
-      const encoded = canvas.toDataURL("image/jpeg", 0.75);
-      if (encoded.length > 1300000)
-        throw new Error("Image is still too large. Choose a smaller image.");
+      const encoded = await prepareEvidence(file);
       update("imageData", encoded);
       setImageName(file.name);
       setError("");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Unable to read the image.");
+    } finally {
+      setImageBusy(false);
     }
   }
-  function geolocate() {
-    if (!navigator.geolocation) {
-      setError("Geolocation is unavailable. Select a point on the map or enter coordinates.");
-      return;
-    }
+  async function geolocate() {
     setGeolocating(true);
     setError("");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        setForm((previous) => ({
-          ...previous,
-          lat: Number(latitude.toFixed(5)),
-          lng: Number(longitude.toFixed(5)),
-          locationMethod: "gps",
-          gpsAccuracyM: Math.round(accuracy),
-        }));
-        setConfirmedLocation(false);
-        setGeolocating(false);
-        setNotice(
-          accuracy > 200
-            ? "GPS uncertainty exceeds 200 metres. Confirm the point on the map or enter the hazard location manually. Do not move into danger to improve GPS reception."
-            : "Device location selected. Check that it matches the hazard location, rather than only your current position.",
-        );
-      },
-      () => {
-        setGeolocating(false);
-        setError(
-          "Location permission denied or unavailable. Use the map or coordinate fields instead.",
-        );
-      },
-      { timeout: 10000, enableHighAccuracy: true },
-    );
+    setConfirmedLocation(false);
+    try {
+      const location = await currentReportLocation();
+      setForm((previous) => ({ ...previous, ...location }));
+      setConfirmedLocation(true);
+      setNotice("Device GPS captured. This pin is fixed to your location and cannot be moved.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Device GPS is unavailable.");
+    } finally {
+      setGeolocating(false);
+    }
   }
   if (result)
     return (
@@ -313,7 +294,7 @@ export function ReportPage() {
                 </div>
               </div>
             )}
-            <fieldset disabled={busy || !!queued}>
+            <fieldset disabled={busy || imageBusy || !!queued}>
               <div className="two-columns">
                 <label>
                   {as ? "বিপদৰ ধৰণ" : "Hazard type"} *
@@ -365,21 +346,9 @@ export function ReportPage() {
                   </select>
                   <small>Your assessment; responder priority is decided separately.</small>
                 </label>
-                <label>
-                  Observation source
-                  <select
-                    value={form.observationSource}
-                    onChange={(event) =>
-                      update(
-                        "observationSource",
-                        event.target.value as "first_hand" | "second_hand",
-                      )
-                    }
-                  >
-                    <option value="first_hand">I observed this directly</option>
-                    <option value="second_hand">Someone else reported it to me</option>
-                  </select>
-                </label>
+                <div className="notice">
+                  Only firsthand observations from your current site can be submitted.
+                </div>
               </div>
               <label>
                 {as ? "আপুনি কি দেখিছে?" : "What did you observe?"} *
@@ -407,14 +376,7 @@ export function ReportPage() {
                       ...previous,
                       description: sample,
                       language: "as",
-                      district: "Lakhimpur",
-                      locationName: "Naoboicha approach road",
-                      lat: 27.16,
-                      lng: 94.09,
-                      locationMethod: "manual",
-                      gpsAccuracyM: null,
                     }));
-                    setConfirmedLocation(true);
                   }}
                 >
                   Try Assamese example
@@ -487,90 +449,39 @@ export function ReportPage() {
                   )}
                 </button>
               </div>
-              <IncidentMap
-                incidents={[]}
-                height={250}
-                selected={[form.lat, form.lng]}
-                picker={(lat, lng) => {
-                  setForm((previous) => ({
-                    ...previous,
-                    lat,
-                    lng,
-                    locationMethod: "map",
-                    gpsAccuracyM: null,
-                  }));
-                  setConfirmedLocation(true);
-                }}
-              />
+              {confirmedLocation ? (
+                <IncidentMap incidents={[]} height={250} selected={[form.lat, form.lng]} />
+              ) : (
+                <div className="notice">
+                  Capture your current GPS location to view the fixed reporting pin. You cannot
+                  select a different location.
+                </div>
+              )}
               <p className="small muted location-quality">
-                Location source: {label(form.locationMethod)}
-                {form.gpsAccuracyM !== null
-                  ? ` · GPS uncertainty ±${form.gpsAccuracyM} metres (device-reported)`
-                  : " · accuracy not measured"}
+                {confirmedLocation
+                  ? `Device GPS: ${form.lat.toFixed(5)}, ${form.lng.toFixed(5)} · accuracy ±${Math.round(form.gpsAccuracyM || 0)} metres`
+                  : "Device location not captured"}
               </p>
-              <div className="two-columns coordinate-fields">
-                <label>
-                  Latitude
-                  <input
-                    type="number"
-                    required
-                    step="any"
-                    min={20}
-                    max={30}
-                    value={form.lat}
-                    onChange={(event) => {
-                      setForm((previous) => ({
-                        ...previous,
-                        lat: Number(event.target.value),
-                        locationMethod: "manual",
-                        gpsAccuracyM: null,
-                      }));
-                      setConfirmedLocation(true);
-                    }}
-                  />
-                </label>
-                <label>
-                  Longitude
-                  <input
-                    type="number"
-                    required
-                    step="any"
-                    min={88}
-                    max={98}
-                    value={form.lng}
-                    onChange={(event) => {
-                      setForm((previous) => ({
-                        ...previous,
-                        lng: Number(event.target.value),
-                        locationMethod: "manual",
-                        gpsAccuracyM: null,
-                      }));
-                      setConfirmedLocation(true);
-                    }}
-                  />
-                </label>
-              </div>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={confirmedLocation}
-                  onChange={(event) => setConfirmedLocation(event.target.checked)}
-                />
-                I have checked that this point matches the reported location.
-              </label>
               <label className="upload-field">
                 <Upload size={20} />
                 <strong>
-                  {imageName || (form.imageData ? "Saved image attached" : "Add an optional photo")}
+                  {imageName ||
+                    (form.imageData ? "Saved image attached" : "Attach a hazard photo *")}
                 </strong>
-                <small>PNG or JPEG · up to 5 MB · resized and metadata removed</small>
+                <small>JPEG, PNG, or WebP · up to 10 MB · resized and metadata removed</small>
                 <input
                   type="file"
-                  accept="image/png,image/jpeg"
-                  capture="environment"
-                  onChange={(event) => void upload(event.target.files?.[0])}
+                  accept="image/png,image/jpeg,image/webp"
+                  aria-label="Hazard photo"
+                  required={!form.imageData}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    void upload(file);
+                  }}
                 />
               </label>
+              {imageBusy && <p role="status">Preparing photo…</p>}
               {form.imageData && (
                 <Image
                   className="evidence-preview"
@@ -641,7 +552,16 @@ export function ReportPage() {
               </button>
               <button
                 className="button primary"
-                disabled={busy || !hydrated || !!queued || !form.declaration || !confirmedLocation}
+                disabled={
+                  busy ||
+                  imageBusy ||
+                  geolocating ||
+                  !hydrated ||
+                  !!queued ||
+                  !form.declaration ||
+                  !confirmedLocation ||
+                  !form.imageData
+                }
               >
                 <Send size={15} />
                 {busy
