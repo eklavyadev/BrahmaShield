@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Alert } from "./domain";
-import { snapshot } from "./repository";
+import { snapshot } from "./backend";
 export interface DataSource {
   id: string;
   name: string;
@@ -34,6 +34,6 @@ export const demoAlertAdapter: AlertSourceAdapter = {
     lastCheckedAt: null,
   },
   async fetchAlerts() {
-    return snapshot().alerts.filter((alert) => alert.demo);
+    return (await snapshot()).alerts.filter((alert) => alert.demo);
   },
 };

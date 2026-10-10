@@ -1,9 +1,31 @@
 import { analysisSchema, type AIAnalysis, type IncidentReport } from "./domain";
-import { claimJob, finishJob, snapshot } from "./repository";
+import { claimJob, finishJob, snapshot } from "./backend";
 import { relevantGuidance } from "./guidance";
 
 export function aiMode(): "live" | "demo" {
   return process.env.AI_MODE === "live" ? "live" : "demo";
+}
+let readiness: { until: number; ready: boolean } | undefined;
+export async function gemmaReady() {
+  if (aiMode() === "demo") return false;
+  if (readiness && readiness.until > Date.now()) return readiness.ready;
+  let ready = false;
+  try {
+    if (process.env.GEMMA_BASE_URL && process.env.GEMMA_MODEL) {
+      const response = await fetch(`${process.env.GEMMA_BASE_URL.replace(/\/$/, "")}/models`, {
+        headers: process.env.GEMMA_API_KEY
+          ? { Authorization: `Bearer ${process.env.GEMMA_API_KEY}` }
+          : {},
+        cache: "no-store",
+        signal: AbortSignal.timeout(4000),
+      });
+      const data = response.ok ? await response.json() : {};
+      ready =
+        data.data?.some((model: { id: string }) => model.id === process.env.GEMMA_MODEL) === true;
+    }
+  } catch {}
+  readiness = { until: Date.now() + 10000, ready };
+  return ready;
 }
 export async function generate(prompt: string, json = false): Promise<string> {
   const base = process.env.GEMMA_BASE_URL;
@@ -13,7 +35,9 @@ export async function generate(prompt: string, json = false): Promise<string> {
     throw new Error("Configure an actual Gemma model for this integration.");
   const response = await fetch(`${base.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(
+      Math.max(1000, Math.min(180000, Number(process.env.GEMMA_TIMEOUT_MS) || 30000)),
+    ),
     headers: {
       "Content-Type": "application/json",
       ...(process.env.GEMMA_API_KEY
@@ -82,18 +106,22 @@ export async function interpret(
   };
 }
 export async function processJobs() {
+  // Pending reports remain pending while weights download or the inference server is offline.
+  if (aiMode() === "live" && !(await gemmaReady())) return;
   for (let i = 0; i < 2; i++) {
-    const job = claimJob();
+    const job = await claimJob();
     if (!job) break;
-    const report = snapshot()
-      .incidents.find((item) => item.id === job.incident_id)
-      ?.reports.find((item) => item.id === job.report_id);
+    let analysis: AIAnalysis | undefined;
     try {
+      const report = (await snapshot()).incidents
+        .find((item) => item.id === job.incident_id)
+        ?.reports.find((item) => item.id === job.report_id);
       if (!report) throw new Error("Report missing");
-      finishJob(job.id, job.incident_id, job.report_id, await interpret(report));
+      analysis = await interpret(report);
     } catch {
-      finishJob(job.id, job.incident_id, job.report_id);
+      // Inference failure is separate from commit failure. Expired leases cannot overwrite new work.
     }
+    await finishJob(job, analysis);
   }
 }
 export async function preparednessAnswer(question: string, language: string) {

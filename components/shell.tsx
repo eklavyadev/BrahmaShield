@@ -42,6 +42,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     online,
     responder,
     demoLogin,
+    authMode,
     region,
     setRegion,
     refreshAuth,
@@ -51,6 +52,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [drawer, setDrawer] = useState(false);
   const [login, setLogin] = useState(false);
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notifications, setNotifications] = useState(false);
@@ -91,7 +93,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       const response = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: demoLogin ? "demo" : password }),
+        body: JSON.stringify({ password: demoLogin ? "demo" : password, email }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
@@ -291,6 +293,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </div>
             )}
             <form onSubmit={signIn}>
+              {authMode === "supabase" && (
+                <label>
+                  Responder email
+                  <input
+                    type="email"
+                    autoComplete="username"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </label>
+              )}
               {!demoLogin && (
                 <label>
                   Responder password

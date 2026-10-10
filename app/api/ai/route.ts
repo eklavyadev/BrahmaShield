@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { assertSameOrigin, failure, rateLimit, readJson } from "@/lib/auth";
 import { aiMode, generate, interpret, preparednessAnswer } from "@/lib/ai";
-import { snapshot } from "@/lib/repository";
+import { snapshot } from "@/lib/backend";
 export const runtime = "nodejs";
 const schema = z.discriminatedUnion("task", [
   z.object({
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       });
     if (input.task === "preparedness")
       return Response.json(await preparednessAnswer(input.text, input.language));
-    const alert = snapshot().alerts.find((item) => item.id === input.alertId);
+    const alert = (await snapshot()).alerts.find((item) => item.id === input.alertId);
     if (!alert) return Response.json({ error: "Alert not found." }, { status: 404 });
     // Keep authoritative fields outside generated prose so their values cannot be replaced by the model.
     const explanation =

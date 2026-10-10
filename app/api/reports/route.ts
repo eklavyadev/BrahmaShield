@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { cookies } from "next/headers";
 import { hashDevice, validIntakeToken } from "@/lib/intake";
 import { reportSchema } from "@/lib/domain";
-import { submitReport } from "@/lib/repository";
+import { submitReport } from "@/lib/backend";
 import { assertSameOrigin, failure, rateLimit, readJson } from "@/lib/auth";
 import { processJobs } from "@/lib/ai";
 export const runtime = "nodejs";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         },
         { status: 422 },
       );
-    const result = submitReport(parsed.data, hashDevice(device));
+    const result = await submitReport(parsed.data, hashDevice(device));
     after(processJobs);
     return Response.json(
       {

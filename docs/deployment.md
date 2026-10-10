@@ -4,7 +4,7 @@
 
 Run `npm run build` then `npm start` on a persistent Node 22.20+ host, behind HTTPS. Mount a persistent writable directory and set `DATA_DIRECTORY` to it. Configure strong `RESPONDER_PASSWORD` and `SESSION_SECRET` values. Do not put keys in `NEXT_PUBLIC_*` variables. Back up the SQLite database and uploads together. Only one app instance is supported.
 
-The default local repository is deliberately a no-account, durable prototype. There is no Supabase connection configured. The shared responder password is not individual identity management and cannot attribute actions to particular people. No official emergency monitoring is performed.
+The default local repository is a no-account, durable prototype. A Supabase adapter is now available: see [cloud setup](supabase.md). It uses individual Supabase accounts, responder memberships, private storage, leased jobs, and transactional version checks. No official emergency monitoring is performed.
 
 ## PostgreSQL / PostGIS migration
 
@@ -24,7 +24,7 @@ Recommended normalized tables:
 
 Use PostGIS spatial indexes and `ST_Intersects`/`ST_DWithin` for affected-area queries. Adopt Supabase Auth with server-side role checks and row-level security. Keep private evidence and personal data outside the public incident view. Implement revision-based updates and append history in the same database transaction. Replace polling with carefully scoped realtime subscriptions and retain reconnection refetch.
 
-A full Supabase SQL migration is intentionally not shipped as a pretend drop-in integration: the identity, source permissions and operational access model must first be specified.
+The shipped Supabase migration implements the current MVP's versioned state document and separate submissions/jobs/membership tables. The normalized schema above is the next scale-up stage, not the current implementation.
 
 ## AI jobs
 

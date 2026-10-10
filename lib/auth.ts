@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { intakeKey } from "./intake";
+import { cloudEnabled, responderMembership, supabaseRequest } from "./supabase";
 
 function secret() {
   if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
@@ -9,7 +10,9 @@ function secret() {
   return intakeKey();
 }
 export function demoLoginAllowed() {
-  return !process.env.RESPONDER_PASSWORD && process.env.NODE_ENV !== "production";
+  return (
+    !cloudEnabled() && !process.env.RESPONDER_PASSWORD && process.env.NODE_ENV !== "production"
+  );
 }
 function equal(a: string, b: string) {
   const one = Buffer.from(a);
@@ -17,6 +20,7 @@ function equal(a: string, b: string) {
   return one.length === two.length && timingSafeEqual(one, two);
 }
 export function validPassword(password: string) {
+  if (cloudEnabled()) return false;
   const expected = process.env.RESPONDER_PASSWORD || (demoLoginAllowed() ? "demo" : "");
   return !!expected && equal(expected, password);
 }
@@ -27,6 +31,7 @@ export function createSession() {
   return `${payload}.${createHmac("sha256", secret()).update(payload).digest("base64url")}`;
 }
 export async function isResponder() {
+  if (cloudEnabled()) return !!(await responderIdentity());
   const value = (await cookies()).get("bs-session")?.value;
   if (!value) return false;
   try {
@@ -42,6 +47,44 @@ export async function isResponder() {
   } catch {
     return false;
   }
+}
+export async function responderIdentity(): Promise<{ id: string } | null> {
+  if (!cloudEnabled()) return (await isResponder()) ? { id: "local-operator" } : null;
+  const token = (await cookies()).get("bs-access")?.value;
+  if (!token) return null;
+  try {
+    // Auth verifies signature, issuer and expiry remotely, including asymmetric JWTs.
+    const user = await supabaseRequest<{ id: string }>(
+      "/auth/v1/user",
+      { headers: { Authorization: `Bearer ${token}` } },
+      false,
+    );
+    return (await responderMembership(user.id)) ? { id: user.id } : null;
+  } catch {
+    return null;
+  }
+}
+export async function signInSupabase(email: string, password: string) {
+  const session = await supabaseRequest<{
+    access_token: string;
+    expires_in: number;
+    user: { id: string };
+  }>(
+    "/auth/v1/token?grant_type=password",
+    { method: "POST", body: JSON.stringify({ email, password }) },
+    false,
+  );
+  if (!(await responderMembership(session.user.id)))
+    throw new Error(
+      "This account has no active responder membership. Ask the project administrator to provision access.",
+    );
+  (await cookies()).set("bs-access", session.access_token, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: Math.min(session.expires_in, 3600),
+  });
 }
 const limits = new Map<string, { count: number; until: number }>();
 export function rateLimit(key: string, max = 30) {

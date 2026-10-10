@@ -9,6 +9,7 @@ interface AppState {
   online: boolean;
   responder: boolean;
   demoLogin: boolean;
+  authMode: "local" | "supabase";
   region: string;
   setRegion: (region: string) => void;
   refresh: () => Promise<void>;
@@ -23,6 +24,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [online, setOnline] = useState(true);
   const [responder, setResponder] = useState(false);
   const [demoLogin, setDemoLogin] = useState(false);
+  const [authMode, setAuthMode] = useState<"local" | "supabase">("local");
   const [region, setRegion] = useState("All districts");
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const requestSequence = useRef(0);
@@ -49,6 +51,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const auth = await response.json();
       setResponder(auth.responder === true);
       setDemoLogin(auth.demoLogin === true);
+      setAuthMode(auth.authMode === "supabase" ? "supabase" : "local");
     } catch {
       setResponder(false);
     }
@@ -84,6 +87,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         online,
         responder,
         demoLogin,
+        authMode,
         region,
         setRegion,
         refresh,

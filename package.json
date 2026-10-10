@@ -11,7 +11,11 @@
     "test": "tsx --test tests/*.test.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:smoke": "node tests/http-smoke.mjs"
+    "test:smoke": "node tests/http-smoke.mjs",
+    "test:cloud": "node --env-file=.env.local --import tsx tests/cloud-smoke.ts",
+    "test:cloud-auth": "node --env-file=.env.local tests/cloud-auth-smoke.mjs",
+    "check:backend": "node --env-file=.env.local --import tsx scripts/check-backend.ts",
+    "worker": "node --env-file=.env.local --import tsx scripts/worker.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

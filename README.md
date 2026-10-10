@@ -2,6 +2,8 @@
 
 A working Next.js disaster-resilience prototype for Assam and Northeast India. It connects community observations, Gemma interpretation, human evidence review, and tracked responder actions. It is not an official warning system or rescue service.
 
+Supabase persistence, private evidence storage, account/membership authorization, and a continuous local Gemma worker are now implemented. See [cloud setup](docs/supabase.md). `/api/health` distinguishes a connected database from a model that is still downloading.
+
 ## Run locally
 
 Requires Node.js **22.20+** (the local repository uses the built-in `node:sqlite` module) and npm.
@@ -27,7 +29,7 @@ Use **Observer → Enter local demo workspace** to try the server-protected resp
 - Images are re-encoded on the client to reduce size and remove metadata; upload magic bytes and size are checked on the server. Photos require responder access.
 - Original reports retained separately from AI output. One tested curated Assamese demonstration example; arbitrary reports are explicitly not translated in demo mode.
 - Server-enforced verification and response lifecycles, evidence notes, an audit history, and optimistic revision checks that reject stale edits.
-- Durable SQLite job records, report-first storage, explicit processing/failure states, and operator retry. Jobs run after requests and resume on snapshot requests; a continuous production worker is not implemented.
+- Durable SQLite or Supabase job records, report-first storage, explicit processing/failure states, and operator retry. Jobs run after requests or through `npm run worker`; Supabase jobs use exclusive leases.
 - Search, district/hazard/status/priority filters, CSV export, advisory explanations, source links, and derived dashboard charts.
 - IndexedDB report drafts and queued submissions. A validated offline report retries when the open reporting page reconnects or is reopened. The interface only shows delivery after the server acknowledges it. Idempotency keys prevent duplicate retry submissions.
 - Production-only service worker with cached previously visited report/preparedness pages, local static assets, and an offline fallback. APIs and external OSM tiles are never cached by the service worker.
@@ -56,7 +58,7 @@ If your serving endpoint requires authentication, set `GEMMA_API_KEY`. Ensure th
 
 With `AI_MODE=demo` (the default), deterministic outputs are clearly labelled. Live mode failures never silently become demo responses. Structured interpretations are validated with Zod; invalid output leaves the saved report intact. Summaries are labelled derived information and original advisory severity, area, validity, and provenance remain visible independently.
 
-The live integration has a 30-second timeout and handles rate limits, invalid responses, and outages. Unit tests stub the model transport. **No live Gemma endpoint was available during initial implementation, so real Assamese model quality, provider compatibility, latency, and translation accuracy still require evaluation.** Start with representative Assamese, transliterated, mixed-language, ambiguous-place, and adversarial examples before operational use.
+The live integration has a configurable timeout capped at 180 seconds and handles rate limits, invalid responses, and outages. Unit tests stub the model transport. Ollama is configured locally; the Gemma weights must finish downloading before live inference can run. Real Assamese quality and translation accuracy require evaluation with local reviewers.
 
 Official Gemma guidance: https://ai.google.dev/gemma/docs/get_started
 

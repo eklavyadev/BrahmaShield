@@ -16,6 +16,10 @@ export interface IntakeQuality {
 const globals = globalThis as typeof globalThis & { brahmaIntakeKey?: string };
 export function intakeKey() {
   if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  if (process.env.BACKEND === "supabase")
+    throw new Error(
+      "SESSION_SECRET is required with Supabase so all app instances share intake tokens.",
+    );
   if (globals.brahmaIntakeKey) return globals.brahmaIntakeKey;
   const dir = path.resolve(/* turbopackIgnore: true */ process.env.DATA_DIRECTORY || ".data");
   mkdirSync(dir, { recursive: true });
