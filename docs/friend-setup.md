@@ -5,7 +5,7 @@ Clone the GitHub repository and use Node 22.20 or later. Run `npm ci`, then crea
 On the friend's laptop, open PowerShell and run:
 
 ```powershell
-git clone https://github.com/amabhijeet/BrahmaShield.git
+git clone https://github.com/eklavyadev/BrahmaShield.git
 cd BrahmaShield
 npm ci
 Copy-Item .env.example .env.local
@@ -48,3 +48,5 @@ The first checks Supabase/private storage and model availability. The second cal
 Report text flows from Next.js to local Ollama, while originals and validated analyses persist in Supabase. Gemma receives text/language, not photos or coordinates. It extracts stated facts and uncertainties, explains supplied advisories, and rewrites curated preparedness guidance. It never verifies reports, moves pins, assigns severity, or dispatches teams. The worker claims durable jobs, validates generated JSON, saves results, and preserves reports if inference fails. Triage-held reports wait for authorized review.
 
 Phone geolocation requires a secure context. `localhost` works on the PC; a plain `http://192.168...` address opened on a phone generally does not. Use HTTPS for phone testing. When Next.js is deployed remotely, its localhost no longer reaches the friend's PC: use a protected reachable inference endpoint or host the app/worker alongside Ollama.
+
+Live weather uses Open-Meteo by default, with no additional API key. Open `/authority` and use password `1234` for prototype overrides, advisories and relief publication. These changes use the existing snapshot storage, so this update needs no additional Supabase migration. See [live alert details](live-alerts.md).

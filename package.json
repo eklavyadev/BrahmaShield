@@ -15,6 +15,7 @@
     "test:cloud": "node --env-file=.env.local --import tsx tests/cloud-smoke.ts",
     "test:cloud-auth": "node --env-file=.env.local tests/cloud-auth-smoke.mjs",
     "test:on-site": "node tests/on-site-smoke.mjs",
+    "test:authority": "node tests/authority-smoke.mjs",
     "check:backend": "node --env-file=.env.local --import tsx scripts/check-backend.ts",
     "check:gemma": "node --env-file=.env.local --import tsx scripts/check-gemma.ts",
     "worker": "node --env-file=.env.local --import tsx scripts/worker.ts"

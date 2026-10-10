@@ -1,4 +1,6 @@
 "use client";
+import { Translated as T } from "./language";
+
 import { useState } from "react";
 import { useApp } from "./provider";
 import { DataGate, IncidentTable, PageTitle } from "./ui";
@@ -37,11 +39,18 @@ export function MapPage() {
             </select>
           </label>
           <label>
-            Verification
+            {" "}
+            <T text={"Verification"} />{" "}
             <select value={verified} onChange={(event) => setVerified(event.target.value)}>
               <option value="all">All report statuses</option>
-              <option value="verified">Human reviewed</option>
-              <option value="unverified">Unverified</option>
+              <option value="verified">
+                {" "}
+                <T text={"Human reviewed"} />{" "}
+              </option>
+              <option value="unverified">
+                {" "}
+                <T text={"Unverified"} />{" "}
+              </option>
               <option value="under_review">Under review</option>
             </select>
           </label>

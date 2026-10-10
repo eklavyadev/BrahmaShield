@@ -1,4 +1,6 @@
 "use client";
+import { Translated as T } from "./language";
+
 import { useState } from "react";
 import {
   Sparkles,
@@ -224,7 +226,10 @@ export function AssistantPage() {
                     <dt>Reported time</dt>
                     <dd>{result.analysis.reportedTime || "Not stated"}</dd>
                   </dl>
-                  <h4>Reported impact</h4>
+                  <h4>
+                    {" "}
+                    <T text={"Reported impact"} />{" "}
+                  </h4>
                   <p>{result.analysis.impact.join("; ") || "Not established"}</p>
                   <h4>Unknown fields</h4>
                   <div className="tag-list">

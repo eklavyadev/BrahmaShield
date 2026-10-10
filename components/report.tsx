@@ -1,4 +1,6 @@
 "use client";
+import { Translated as T } from "./language";
+
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,6 +11,7 @@ import { prepareEvidence } from "@/lib/report-media";
 import { currentReportLocation, nearby } from "@/lib/report-location";
 import { clearDraft, readDraft, saveDraft, type ReportDraft } from "@/lib/offline";
 import { impactLabels } from "@/lib/impact";
+import { useLanguage } from "./language";
 
 const initial: ReportDraft = {
   clientId: "",
@@ -29,6 +32,7 @@ const initial: ReportDraft = {
 };
 type Draft = ReportDraft;
 export function ReportPage() {
+  const { t } = useLanguage();
   const { online, refresh } = useApp();
   const [form, setForm] = useState<ReportDraft>(initial);
   const [hydrated, setHydrated] = useState(false);
@@ -222,8 +226,14 @@ export function ReportPage() {
     <div className="minimal-report">
       <form className="panel report-form" onSubmit={submit}>
         <header className="minimal-report-heading">
-          <h1>Report a hazard</h1>
-          <p>Report from the site. Photo and current GPS are required.</p>
+          <h1>
+            {" "}
+            <T text={"Report a hazard"} />{" "}
+          </h1>
+          <p>
+            {" "}
+            <T text={"Report from the site. Photo and current GPS are required."} />{" "}
+          </p>
         </header>
         <div className="form-body">
           {!online && (
@@ -266,7 +276,8 @@ export function ReportPage() {
           )}
           <fieldset disabled={busy || imageBusy || !!queued}>
             <label>
-              Photo *
+              {" "}
+              <T text={"Photo *"} />{" "}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -297,14 +308,18 @@ export function ReportPage() {
                       setImageName("");
                     }}
                   >
-                    Remove photo
+                    {" "}
+                    <T text={"Remove photo"} />{" "}
                   </button>
                 </div>
               </div>
             )}
             <div className="minimal-gps" aria-live="polite">
               <div>
-                <strong>Device location *</strong>
+                <strong>
+                  {" "}
+                  <T text={"Device location *"} />{" "}
+                </strong>
                 <p>
                   {confirmedLocation
                     ? `GPS detected · accuracy ±${Math.round(form.gpsAccuracyM || 0)} m`
@@ -323,7 +338,8 @@ export function ReportPage() {
             </div>
             <div className="two-columns">
               <label>
-                Hazard type *
+                {" "}
+                <T text={"Hazard type *"} />{" "}
                 <select
                   value={form.hazard}
                   onChange={(event) =>
@@ -336,13 +352,14 @@ export function ReportPage() {
                 >
                   {hazards.map((hazard) => (
                     <option key={hazard} value={hazard}>
-                      {label(hazard)}
+                      {t(label(hazard))}
                     </option>
                   ))}
                 </select>
               </label>
               <label>
-                Severity level *
+                {" "}
+                <T text={"Severity level *"} />{" "}
                 <select
                   aria-label="Severity level"
                   value={form.impactLevel}
@@ -352,7 +369,7 @@ export function ReportPage() {
                 >
                   {impactLabels[form.hazard].map((description, index) => (
                     <option key={description} value={index + 1}>
-                      {["Low", "Moderate", "Severe"][index]}
+                      {t(["Low", "Moderate", "Severe"][index])}
                     </option>
                   ))}
                 </select>
@@ -360,13 +377,16 @@ export function ReportPage() {
               </label>
             </div>
             <label>
-              Description *
+              {" "}
+              <T text={"Description *"} />{" "}
               <textarea
                 required
                 minLength={15}
                 maxLength={4000}
                 rows={3}
-                placeholder="What happened? Describe what you can see. Any local language is welcome."
+                placeholder={t(
+                  "What happened? Describe what you can see. Any local language is welcome.",
+                )}
                 value={form.description}
                 onChange={(event) =>
                   setForm((previous) => ({
@@ -379,7 +399,8 @@ export function ReportPage() {
             </label>
             <div className="two-columns">
               <label>
-                District *
+                {" "}
+                <T text={"District *"} />{" "}
                 <select
                   value={form.district}
                   onChange={(event) => update("district", event.target.value)}
@@ -390,7 +411,8 @@ export function ReportPage() {
                 </select>
               </label>
               <label>
-                Nearest landmark *
+                {" "}
+                <T text={"Nearest landmark *"} />{" "}
                 <input
                   required
                   minLength={3}
@@ -408,9 +430,11 @@ export function ReportPage() {
                 onChange={(event) => update("declaration", event.target.checked)}
               />
               <span>
-                I’m at this site and my report is truthful. I consent to storing my photo, GPS and
-                description for review. Text and location may be public; photos are restricted to
-                authorized responders.
+                <T
+                  text={
+                    "I’m at this site and my report is truthful. I consent to storing my photo, GPS and description for review. Text and location may be public; photos are restricted to authorized responders."
+                  }
+                />
               </span>
             </label>
             <div className="honeypot" aria-hidden="true">
@@ -441,8 +465,7 @@ export function ReportPage() {
                   .catch(() => setError("Unable to save draft."))
               }
             >
-              <Save size={14} />
-              Save draft
+              <Save size={14} /> <T text={"Save draft"} />{" "}
             </button>
             <button
               className="button primary"
@@ -462,7 +485,10 @@ export function ReportPage() {
             </button>
           </div>
           <p className="minimal-safety">
-            Do not enter danger to report. This app does not contact emergency services.
+            {" "}
+            <T
+              text={"Do not enter danger to report. This app does not contact emergency services."}
+            />{" "}
           </p>
         </div>
       </form>

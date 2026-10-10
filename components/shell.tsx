@@ -17,10 +17,16 @@ import {
   RefreshCw,
   WifiOff,
   MapPin,
+  ShieldCheck,
+  Tent,
+  Phone,
+  LockKeyhole,
 } from "lucide-react";
 import { useApp } from "./provider";
 import { districtNames } from "@/lib/domain";
 import { relativeTime } from "./ui";
+import { useLanguage, Translated as T } from "./language";
+import type { Language } from "@/lib/languages";
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/map", label: "Map", icon: Map },
@@ -28,10 +34,14 @@ const navigation = [
   { href: "/incidents", label: "Incidents", icon: ClipboardList },
   { href: "/response", label: "Responders", icon: RadioTower },
   { href: "/assistant", label: "Assistant", icon: Sparkles },
-  { href: "/preparedness", label: "Preparedness", icon: BookOpen },
+  { href: "/public-guidance", label: "Public guidance", icon: BookOpen },
+  { href: "/safety", label: "Safety", icon: ShieldCheck },
+  { href: "/relief", label: "Relief & support", icon: Tent },
+  { href: "/authority", label: "Authority dashboard", icon: LockKeyhole },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const { language, setLanguage, t } = useLanguage();
   const { data, online, region, setRegion, refresh, lastSynced } = useApp();
   const [drawer, setDrawer] = useState(false);
   const [notifications, setNotifications] = useState(false);
@@ -67,7 +77,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawer(false)}
             >
               <item.icon size={18} />
-              <span>{item.label}</span>
+              <span>{t(item.label)}</span>
               {item.href === "/incidents" && pending > 0 && (
                 <span className="nav-count">{pending}</span>
               )}
@@ -76,7 +86,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-bottom">
           <Link className="button report-nav" href="/report" onClick={() => setDrawer(false)}>
-            <MessageSquarePlus size={17} /> Report a hazard <ArrowUpRight size={16} />
+            <MessageSquarePlus size={17} /> <T text={"Report a hazard"} />{" "}
+            <ArrowUpRight size={16} />
           </Link>
         </div>
       </aside>
@@ -91,17 +102,40 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Menu size={20} />
             </button>
             <span className="breadcrumb">
-              Workspace <span>/</span>{" "}
+              {" "}
+              <T text={"Workspace"} /> <span>/</span>{" "}
               <strong>
-                {navigation.find((item) => path.startsWith(item.href))?.label ||
-                  (path === "/report" ? "Community report" : "Overview")}
+                {t(
+                  navigation.find((item) => path.startsWith(item.href))?.label ||
+                    (path === "/report"
+                      ? "Community report"
+                      : path === "/emergency"
+                        ? "Emergency"
+                        : path === "/preparedness"
+                          ? "Public guidance"
+                          : "Overview"),
+                )}
               </strong>
             </span>
           </div>
           <div className="topbar-right">
+            <select
+              className="language-select"
+              aria-label="Website language"
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as Language)}
+            >
+              <option value="en">English</option>
+              <option value="as">অসমীয়া</option>
+              <option value="hi">हिन्दी</option>
+            </select>
+            <Link href="/emergency" className="button emergency-nav">
+              <Phone size={18} />
+              <T text="Emergency" />
+            </Link>
             <span className="connection-status">
               {online ? <span className="status-dot" /> : <WifiOff size={13} />}{" "}
-              {online && lastSynced ? "Connected" : online ? "Connecting" : "Offline"}
+              {t(online && lastSynced ? "Connected" : online ? "Connecting" : "Offline")}
             </span>
             <button
               className="icon-button refresh-top"
@@ -123,15 +157,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {notifications && (
                 <div className="notification-popover">
                   <strong>Workspace alerts</strong>
-                  <p className="small muted">Simulated advisories · not emergency notifications</p>
-                  {data?.alerts.map((alert) => (
-                    <Link key={alert.id} href="/alerts" onClick={() => setNotifications(false)}>
-                      {alert.title}
-                      <small>
-                        {alert.district} · {relativeTime(alert.issuedAt)}
-                      </small>
-                    </Link>
-                  ))}
+                  <p className="small muted">
+                    {data?.weatherFeed
+                      ? "Forecast advisories · check official warnings"
+                      : "Demo advisories · not official warnings"}
+                  </p>
+                  {data?.alerts
+                    .filter(
+                      (alert) =>
+                        Date.parse(alert.expiresAt) > Date.parse(lastSynced || "1970-01-01"),
+                    )
+                    .map((alert) => (
+                      <Link key={alert.id} href="/alerts" onClick={() => setNotifications(false)}>
+                        {alert.title}
+                        <small>
+                          {alert.district} · {relativeTime(alert.issuedAt)}
+                        </small>
+                      </Link>
+                    ))}
                 </div>
               )}
             </div>
@@ -139,7 +182,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <div className="context-bar">
           <span>
-            <span className="demo-chip">PROTOTYPE</span> Demo alerts · reports need review
+            <span className="demo-chip">PROTOTYPE</span>{" "}
+            {!data
+              ? "Loading conditions…"
+              : data.weatherFeed?.status === "live"
+                ? "Live forecasts · reports need review"
+                : data.weatherFeed
+                  ? "Forecast feed delayed · check official sources"
+                  : "Demo alerts · reports need review"}
           </span>
           <label className="region-select">
             <MapPin size={13} />
@@ -149,7 +199,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
               onChange={(event) => setRegion(event.target.value)}
             >
               {districtNames.map((name) => (
-                <option key={name}>{name}</option>
+                <option key={name} value={name}>
+                  {t(name)}
+                </option>
               ))}
             </select>
           </label>
@@ -159,7 +211,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </main>
         <footer className="app-footer">
           <span>BrahmaShield · Northeast India</span>
-          <span>No live monitoring or emergency dispatch · All times IST</span>
+          <span>No emergency dispatch · All times IST</span>
         </footer>
       </div>
     </div>

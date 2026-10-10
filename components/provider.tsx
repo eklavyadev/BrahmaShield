@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { Snapshot } from "@/lib/domain";
+import { useAlertNotifications } from "./use-alert-notifications";
 
 interface AppState {
   data: Snapshot | null;
@@ -15,6 +16,7 @@ interface AppState {
   refresh: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   lastSynced: string | null;
+  notifications: ReturnType<typeof useAlertNotifications>;
 }
 const Context = createContext<AppState | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -28,6 +30,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [region, setRegion] = useState("All districts");
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const requestSequence = useRef(0);
+  const notifications = useAlertNotifications(data, region);
   const refresh = useCallback(async () => {
     const sequence = ++requestSequence.current;
     try {
@@ -93,6 +96,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refresh,
         refreshAuth,
         lastSynced,
+        notifications,
       }}
     >
       {children}

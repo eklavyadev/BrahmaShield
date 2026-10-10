@@ -1,10 +1,14 @@
 "use client";
+import { Translated as T } from "./language";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ExternalLink, Volume2, Square, Backpack, Sparkles } from "lucide-react";
 import { guidance, kitItems } from "@/lib/guidance";
 import { HazardIcon, PageTitle } from "./ui";
+import { useLanguage } from "./language";
 export function PreparednessPage() {
+  const { t, language } = useLanguage();
   const [checked, setChecked] = useState<string[]>([]);
   const [speaking, setSpeaking] = useState("");
   const [notice, setNotice] = useState("");
@@ -44,7 +48,7 @@ export function PreparednessPage() {
       return;
     }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN";
+    utterance.lang = language === "as" ? "as-IN" : language === "hi" ? "hi-IN" : "en-IN";
     utterance.rate = 0.92;
     utterance.onend = () => setSpeaking("");
     utterance.onerror = () => {
@@ -58,7 +62,7 @@ export function PreparednessPage() {
     <>
       <PageTitle
         eyebrow="PREPARE BEFORE CONDITIONS CHANGE"
-        title="Community preparedness center"
+        title="Public guidance"
         description="Simple guidance, source links, and a household checklist. Follow current local authority instructions."
       >
         <Link href="/assistant" className="button">
@@ -82,23 +86,26 @@ export function PreparednessPage() {
             <div className="guidance-icon">
               <HazardIcon hazard={source.hazard} size={26} />
             </div>
-            <h2>{source.title}</h2>
+            <h2>{t(source.title)}</h2>
             <ul>
               {source.items.map((item) => (
                 <li key={item}>
                   <CheckCircle2 size={15} />
-                  <span>{item}</span>
+                  <span>{t(item)}</span>
                 </li>
               ))}
             </ul>
             <div className="advisory-footer">
               <a className="text-link" target="_blank" rel="noreferrer" href={source.url}>
-                Read source <ExternalLink size={13} />
+                {" "}
+                <T text={"Read source"} /> <ExternalLink size={13} />
               </a>
               <button
                 className="icon-button"
                 aria-label={speaking === source.id ? "Stop audio" : `Listen to ${source.title}`}
-                onClick={() => speak(source.id, `${source.title}. ${source.items.join(" ")}`)}
+                onClick={() =>
+                  speak(source.id, `${t(source.title)}. ${source.items.map(t).join(" ")}`)
+                }
               >
                 {speaking === source.id ? <Square size={15} /> : <Volume2 size={18} />}
               </button>
@@ -111,8 +118,7 @@ export function PreparednessPage() {
         <section className="panel">
           <div className="panel-heading">
             <h2>
-              <Backpack size={17} className="teal" />
-              Household emergency kit
+              <Backpack size={17} className="teal" /> <T text={"Household emergency kit"} />{" "}
             </h2>
             <span className="small muted">
               {checked.length} / {kitItems.length} prepared
@@ -130,7 +136,7 @@ export function PreparednessPage() {
                   checked={checked.includes(item)}
                   onChange={() => toggle(item)}
                 />
-                {item}
+                {t(item)}
               </label>
             ))}
           </div>

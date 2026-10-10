@@ -1,4 +1,6 @@
 "use client";
+import { Translated as T } from "./language";
+
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -211,7 +213,10 @@ export function IncidentDetail({ id }: { id: string }) {
                               {report.analysis.locationClues.join(", ") ||
                                 "No location clues extracted"}
                             </p>
-                            <h4>Reported impact</h4>
+                            <h4>
+                              {" "}
+                              <T text={"Reported impact"} />{" "}
+                            </h4>
                             <ul>
                               {report.analysis.impact.length ? (
                                 report.analysis.impact.map((item) => <li key={item}>{item}</li>)
@@ -324,11 +329,17 @@ export function IncidentDetail({ id }: { id: string }) {
                     {data?.teams.find((item) => item.id === incident.assignedTeamId)?.name ||
                       "Not assigned"}
                   </dd>
-                  <dt>Verification</dt>
+                  <dt>
+                    {" "}
+                    <T text={"Verification"} />{" "}
+                  </dt>
                   <dd>{label(incident.verification)}</dd>
                   <dt>Last changed</dt>
                   <dd>{dateTime(incident.updatedAt)}</dd>
-                  <dt>Source</dt>
+                  <dt>
+                    {" "}
+                    <T text={"Source"} />{" "}
+                  </dt>
                   <dd>{incident.demo ? "Simulated demonstration" : "Community observation"}</dd>
                 </dl>
                 <p className="small muted">
@@ -408,7 +419,8 @@ export function IncidentDetail({ id }: { id: string }) {
                     </small>
                     <div className="action-divider" />
                     <label>
-                      Priority
+                      {" "}
+                      <T text={"Priority"} />{" "}
                       <select
                         value={priority || incident.priority}
                         onChange={(event) => setPriority(event.target.value)}

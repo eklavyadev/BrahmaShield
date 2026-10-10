@@ -90,6 +90,21 @@ export interface Alert {
   original: string;
   sourceUrl: string;
   demo: boolean;
+  sourceType?: "forecast" | "official" | "authority";
+}
+export interface WeatherForecast {
+  district: string;
+  date: string;
+  rainMm: number | null;
+  gustKmh: number | null;
+  weatherCode: number | null;
+}
+export interface WeatherFeed {
+  status: "live" | "stale" | "unavailable";
+  fetchedAt: string | null;
+  message: string;
+  forecasts: WeatherForecast[];
+  alerts: Alert[];
 }
 export interface ResponseTeam {
   id: string;
@@ -129,6 +144,83 @@ export interface Snapshot {
   resources: Resource[];
   updatedAt: string;
   aiMode: "live" | "demo";
+  weatherFeed?: WeatherFeed;
+  reliefUpdates?: ReliefUpdate[];
+  authorityAdvisories?: AuthorityAdvisory[];
+}
+export const reliefUpdateSchema = z.object({
+  id: z.string().uuid(),
+  expectedRevision: z.number().int().nonnegative(),
+  kind: z.enum(["camp", "food", "initiative"]),
+  district: z.enum([
+    "Dibrugarh",
+    "Lakhimpur",
+    "Dhemaji",
+    "Kamrup Metro",
+    "Morigaon",
+    "Jorhat",
+    "Cachar",
+    "Dima Hasao",
+  ]),
+  title: z.string().trim().min(5).max(120),
+  location: z.string().trim().min(3).max(160),
+  details: z.string().trim().min(15).max(2000),
+  sourceUrl: z
+    .string()
+    .url()
+    .max(500)
+    .refine((v) => new URL(v).protocol === "https:", "Use an HTTPS source URL."),
+  status: z.enum(["active", "closed"]),
+  validUntil: z
+    .string()
+    .datetime()
+    .refine((v) => Date.parse(v) > Date.now(), "Validity must be in the future."),
+  quantity: z.number().int().min(0).max(1000000).nullable(),
+});
+export type ReliefUpdateInput = z.infer<typeof reliefUpdateSchema>;
+export interface ReliefUpdate extends Omit<ReliefUpdateInput, "expectedRevision"> {
+  revision: number;
+  updatedAt: string;
+  updatedBy: string;
+  history?: HistoryEvent[];
+}
+export const authorityAdvisorySchema = z.object({
+  id: z.string().uuid(),
+  expectedRevision: z.number().int().nonnegative(),
+  title: z.string().trim().min(5).max(120),
+  original: z.string().trim().min(15).max(3000),
+  district: z.enum([
+    "Dibrugarh",
+    "Lakhimpur",
+    "Dhemaji",
+    "Kamrup Metro",
+    "Morigaon",
+    "Jorhat",
+    "Cachar",
+    "Dima Hasao",
+  ]),
+  hazard: z.enum(hazards),
+  severity: z.enum(["yellow", "orange", "red"]),
+  expiresAt: z
+    .string()
+    .datetime()
+    .refine((v) => Date.parse(v) > Date.now(), "Expiry must be in the future."),
+  sourceUrl: z
+    .string()
+    .url()
+    .max(500)
+    .refine((v) => new URL(v).protocol === "https:"),
+  status: z.enum(["active", "withdrawn"]),
+  reason: z.string().trim().min(15).max(1000),
+  relatedAlertId: z.string().max(100).optional(),
+});
+export type AuthorityAdvisoryInput = z.infer<typeof authorityAdvisorySchema>;
+export interface AuthorityAdvisory extends Alert {
+  district: AuthorityAdvisoryInput["district"];
+  revision: number;
+  status: "active" | "withdrawn";
+  relatedAlertId?: string;
+  history: HistoryEvent[];
 }
 export const reportSchema = z.object({
   clientId: z.string().uuid(),
@@ -195,10 +287,13 @@ export const actionSchema = z.object({
     "close",
     "note",
     "retry_ai",
+    "override",
   ]),
   note: z.string().trim().max(1000).default(""),
   priority: z.enum(priorities).optional(),
   teamId: z.string().max(80).optional(),
+  verification: z.enum(verificationStates).optional(),
+  response: z.enum(responseStates).optional(),
 });
 export type IncidentAction = z.infer<typeof actionSchema>;
 export const districtNames = [
@@ -294,6 +389,22 @@ export function applyAction(
         report.analysisState === "failed" ? { ...report, analysisState: "pending" } : report,
       );
       message = "Queued AI interpretation retry";
+      break;
+    case "override":
+      if (input.note.length < 15)
+        throw new Error("Record the evidence and reason for the authority override.");
+      if (!input.priority || !input.verification || !input.response)
+        throw new Error("Select priority, verification and response status.");
+      if (input.verification === "rejected" && input.response !== "closed")
+        throw new Error("Rejected reports must be closed.");
+      if (["assigned", "in_progress"].includes(input.response) && !next.assignedTeamId)
+        throw new Error("Assign a team before selecting an active response.");
+      message = `Authority override: priority ${next.priority} → ${input.priority}; verification ${next.verification} → ${input.verification}; response ${next.response} → ${input.response}`;
+      next.priority = input.priority;
+      next.verification = input.verification;
+      next.response = input.response;
+      next.verifiedAt = input.verification === "verified" ? now : null;
+      if (input.verification === "rejected") next.assignedTeamId = null;
       break;
   }
   next.updatedAt = now;

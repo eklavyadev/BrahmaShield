@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { AppProvider } from "@/components/provider";
 import { Shell } from "@/components/shell";
+import { LanguageProvider } from "@/components/language";
 import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const jetbrains = JetBrains_Mono({
@@ -22,9 +23,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
       <body>
-        <AppProvider>
-          <Shell>{children}</Shell>
-        </AppProvider>
+        <LanguageProvider>
+          <AppProvider>
+            <Shell>{children}</Shell>
+          </AppProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

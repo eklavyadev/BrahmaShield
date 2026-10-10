@@ -13,13 +13,13 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000/dashboard. No credentials are needed for the local prototype. Data is seeded on first use and persists in `.data/brahmashield.sqlite`; uploads live in `.data/uploads`. Those files are ignored by Git.
+Open http://localhost:3000/dashboard. Public pages need no sign-in. The authority dashboard at `/authority` uses the requested prototype password **1234**; its session is signed and expires after two hours. Data is seeded on first use and persists in `.data/brahmashield.sqlite`; uploads live in `.data/uploads`. Those files are ignored by Git.
 
 Public reports start unverified and medium priority. The responder sign-in dialog and profile button have been removed from the interface at the user's request. Responder mutations and private photos still require backend authorization; removing the dialog does not grant public access. An authorized operator can change priority, verify evidence, assign a team, start a response, and record resolution. Assignments never contact an external team.
 
 ## What works
 
-- Landing page, situation room, OSM map, alert center, community reporting, incident register/detail, response console, Gemma workspace, and preparedness center.
+- Landing page, public report cards, situation room, light OSM map, live forecast alerts, community reporting, incident register/detail, response console, Gemma workspace, public guidance, emergency contacts, area conditions, relief updates, and authority dashboard.
 - Consistent persisted records across every screen, with 15-second polling and immediate refetch after actions.
 - OpenStreetMap raster tiles through Leaflet, OSM attribution, independent hazard/shelter layers, clickable incident popups, zoom, fit-to-records, and accessible list fallback.
 - Minimal on-site report form, required fresh device GPS (accuracy within 200 metres), required photo evidence, user-selected Low/Moderate/Severe levels, and a trackable incident ID. The report page contains no map or coordinate inputs. Manual/map coordinates and secondhand submissions are rejected by the public API.
@@ -33,7 +33,12 @@ Public reports start unverified and medium priority. The responder sign-in dialo
 - Search, district/hazard/status/priority filters, CSV export, advisory explanations, source links, and derived dashboard charts.
 - IndexedDB report drafts and queued submissions. A validated offline report retries when the open reporting page reconnects or is reopened. The interface only shows delivery after the server acknowledges it. Idempotency keys prevent duplicate retry submissions.
 - Production-only service worker with cached previously visited report/preparedness pages, local static assets, and an offline fallback. APIs and external OSM tiles are never cached by the service worker.
-- Source-grounded preparedness selection, device-persistent emergency-kit checklist, and optional browser speech synthesis in English.
+- Source-grounded public guidance, device-persistent emergency-kit checklist, and optional browser speech using available voices for the selected language.
+- English, Assamese and Hindi selectors for core navigation, forms and guidance. Unsupported interface strings fall back to English; report originals and source bulletins retain their original language.
+- Timestamped Open-Meteo forecasts for eight representative district centres, with explicitly labelled application advisories and stale/unavailable feed states.
+- Opt-in district-filtered browser notifications for new advisories while the app is open.
+- Authority incident overrides with reasons, preserved evidence, revision checks and audit history; separate publish/revise/withdraw controls for authority advisories.
+- Published relief-camp, food-distribution and assistance updates with source links, validity dates and recorded revisions.
 - Responsive layouts, accessible labels, keyboard focus states, and reduced-motion support.
 
 ## Gemma configuration
@@ -83,15 +88,18 @@ Verification (`unverified / under_review / verified / rejected`) is separate fro
 
 ## APIs
 
-| Endpoint                    | Purpose                                                     |
-| --------------------------- | ----------------------------------------------------------- |
-| `GET /api/snapshot`         | Shared data snapshot; resumes queued AI jobs                |
-| `GET /api/intake`           | Anonymous device cookie and signed submission token         |
-| `POST /api/reports`         | Validated, idempotent community submission                  |
-| `PATCH /api/incidents/:id`  | Authenticated, revision-checked responder action            |
-| `GET/POST/DELETE /api/auth` | Session state, sign-in, sign-out                            |
-| `POST /api/ai`              | Interpretation, advisory explanation, preparedness guidance |
-| `GET /api/media/:file`      | Responder-only evidence photo                               |
+| Endpoint                              | Purpose                                                     |
+| ------------------------------------- | ----------------------------------------------------------- |
+| `GET /api/snapshot`                   | Shared data snapshot; resumes queued AI jobs                |
+| `GET /api/intake`                     | Anonymous device cookie and signed submission token         |
+| `POST /api/reports`                   | Validated, idempotent community submission                  |
+| `PATCH /api/incidents/:id`            | Authenticated, revision-checked responder action            |
+| `GET/POST/DELETE /api/auth`           | Session state, sign-in, sign-out                            |
+| `GET/POST/DELETE /api/authority-auth` | Prototype authority session                                 |
+| `POST /api/authority-advisories`      | Authority-only audited advisory publication                 |
+| `POST /api/relief`                    | Authorized, revision-checked relief updates                 |
+| `POST /api/ai`                        | Interpretation, advisory explanation, preparedness guidance |
+| `GET /api/media/:file`                | Responder-only evidence photo                               |
 
 ## Build and verification
 
@@ -103,7 +111,7 @@ npm run build
 npm start
 ```
 
-For a production-mode local run, configure `RESPONDER_PASSWORD` and a cryptographically random `SESSION_SECRET` (at least 32 characters). Demo login is disabled in production. Cookie security expects HTTPS when deployed.
+For a production-mode local run, configure a cryptographically random `SESSION_SECRET` (at least 32 characters). The requested `AUTHORITY_PASSWORD=1234` is for the prototype; replace shared-password access with individual authority accounts before public deployment. Local SQLite responder sessions also use `RESPONDER_PASSWORD`. Demo login is disabled in production. Cookie security expects HTTPS when deployed.
 
 Tests cover rejected/invalid reports, evidence requirements, urgent unverified assignments, stale edits, response transitions, idempotency, atomic persistence, attachment checks, durable jobs, failure/retry behavior, curated language output, unsupported guidance questions, and validated live-model responses using stubs. The SQLite experimental warning on Node 22 is expected.
 
@@ -115,11 +123,11 @@ The anonymous `bs-reporter` cookie gives a browser access to its held submission
 
 All seeded incidents, warnings, shelters, response teams, and resource quantities are **simulated**. New community reports are real user submissions but remain unverified until reviewed in this prototype. Demo verification is never official verification. Alert links identify reference portals, not sources of fabricated live results.
 
-Official integration references: [NDMA SACHET](https://sachet.ndma.gov.in/), [IMD](https://mausam.imd.gov.in/), [ASDMA](https://asdma.assam.gov.in/). No live official feed, forecast model, SMS/WhatsApp notifications, rescue dispatch, or safe-route calculation is connected.
+Official integration references: [NDMA SACHET](https://sachet.ndma.gov.in/), [IMD](https://mausam.imd.gov.in/), [ASDMA](https://asdma.assam.gov.in/). Live Open-Meteo forecasts are connected. The generated thresholds are application rules, not official IMD/NDMA warnings. No official warning feed, SMS/WhatsApp delivery, rescue dispatch, or safe-route calculation is connected. See [live alerts and authority setup](docs/live-alerts.md).
 
 Preparedness sources are stored with each approved excerpt in `lib/guidance.ts`: FEMA Ready.gov flood guidance, Government of India landslide precautions, and US National Weather Service lightning guidance. These are general educational materials; current local official instructions take precedence. Household kit items follow the [Ready.gov emergency-supply checklist](https://www.ready.gov/sites/default/files/2021-01/ready_emergency-supply-kit-checklist.pdf).
 
-Interface Assamese is limited to the reporting flow. Device audio uses available English voices; Assamese audio is not claimed. Official warning polygons, hospital records, hazard susceptibility zones, road closures, multiple-report corroboration, and push notifications require sourced integrations.
+Core interface and guidance support English, Assamese and Hindi; some explanatory text falls back to English. Audio depends on installed browser voices. The safety page reports available observations without certifying unaffected areas. Official warning polygons, hospital records, hazard susceptibility zones, road closures, corroboration, and closed-browser push require further integrations.
 
 ## Deployment boundary
 

@@ -30,7 +30,34 @@ export function createSession() {
   ).toString("base64url");
   return `${payload}.${createHmac("sha256", secret()).update(payload).digest("base64url")}`;
 }
+export function createAuthoritySession() {
+  const payload = Buffer.from(
+    JSON.stringify({ role: "authority", expires: Date.now() + 2 * 3600000 }),
+  ).toString("base64url");
+  return `${payload}.${createHmac("sha256", secret()).update(payload).digest("base64url")}`;
+}
+export function validAuthorityPassword(password: string) {
+  return equal(password, process.env.AUTHORITY_PASSWORD || "1234");
+}
+export async function isAuthority() {
+  const value = (await cookies()).get("bs-authority")?.value;
+  if (!value) return false;
+  try {
+    const [payload, signature] = value.split(".");
+    if (
+      !payload ||
+      !signature ||
+      !equal(signature, createHmac("sha256", secret()).update(payload).digest("base64url"))
+    )
+      return false;
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString());
+    return parsed.role === "authority" && parsed.expires > Date.now();
+  } catch {
+    return false;
+  }
+}
 export async function isResponder() {
+  if (await isAuthority()) return true;
   if (cloudEnabled()) return !!(await responderIdentity());
   const value = (await cookies()).get("bs-session")?.value;
   if (!value) return false;
@@ -49,6 +76,7 @@ export async function isResponder() {
   }
 }
 export async function responderIdentity(): Promise<{ id: string } | null> {
+  if (await isAuthority()) return { id: "prototype-authority" };
   if (!cloudEnabled()) return (await isResponder()) ? { id: "local-operator" } : null;
   const token = (await cookies()).get("bs-access")?.value;
   if (!token) return null;

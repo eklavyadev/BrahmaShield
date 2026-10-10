@@ -4,6 +4,9 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createSeed } from "./seed";
 import { assessIntake, imageDigest } from "./intake";
+import { applyReliefUpdate, applyAuthorityAdvisory } from "./relief";
+import type { AuthorityAdvisoryInput } from "./domain";
+import type { ReliefUpdateInput } from "./domain";
 import {
   applyAction,
   type AIAnalysis,
@@ -34,6 +37,12 @@ function db() {
 export function snapshot(): Snapshot {
   const row = db().prepare("SELECT payload FROM state WHERE id = 1").get() as { payload: string };
   return { ...JSON.parse(row.payload), aiMode: process.env.AI_MODE === "live" ? "live" : "demo" };
+}
+export function saveReliefUpdate(input: ReliefUpdateInput, actor: string) {
+  return transaction((state) => applyReliefUpdate(state, input, actor));
+}
+export function saveAuthorityAdvisory(input: AuthorityAdvisoryInput, actor: string) {
+  return transaction((state) => applyAuthorityAdvisory(state, input, actor));
 }
 function transaction<T>(work: (state: Snapshot) => T): T {
   const connection = db();
@@ -139,7 +148,7 @@ export function submitReport(
     return { incident, duplicate: false };
   });
 }
-export function updateIncident(id: string, action: IncidentAction) {
+export function updateIncident(id: string, action: IncidentAction, actor = "Responder") {
   return transaction((state) => {
     const index = state.incidents.findIndex((item) => item.id === id);
     if (index < 0) throw new Error("Incident not found.");
@@ -148,7 +157,12 @@ export function updateIncident(id: string, action: IncidentAction) {
       action,
       state.teams.map((team) => team.id),
     );
-    if (["review", "verify"].includes(action.action)) {
+    const history = state.incidents[index].history;
+    history[history.length - 1].actor = actor;
+    if (
+      ["review", "verify"].includes(action.action) ||
+      (action.action === "override" && action.verification === "verified")
+    ) {
       state.incidents[index].reports = state.incidents[index].reports.map((report) =>
         report.analysisState === "held" ? { ...report, analysisState: "pending" } : report,
       );

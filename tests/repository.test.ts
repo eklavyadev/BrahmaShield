@@ -118,3 +118,22 @@ test("suspected duplicates are saved separately and AI waits for operator review
   );
   assert.equal(claimJob()?.incident_id, held.incident.id);
 });
+test("authority verification releases a held AI job and retains the authority actor", () => {
+  const held = submitReport({ ...payload, clientId: crypto.randomUUID() });
+  assert.equal(held.incident.reports[0].analysisState, "held");
+  const updated = updateIncident(
+    held.incident.id,
+    actionSchema.parse({
+      revision: held.incident.revision,
+      action: "override",
+      priority: "high",
+      verification: "verified",
+      response: "new",
+      note: "Authority checked the original evidence with local responders.",
+    }),
+    "prototype-authority",
+  );
+  assert.equal(updated.history.at(-1)?.actor, "prototype-authority");
+  assert.equal(updated.reports[0].analysisState, "pending");
+  assert.equal(claimJob()?.incident_id, held.incident.id);
+});

@@ -1,4 +1,6 @@
 "use client";
+import { Translated as T } from "./language";
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -27,6 +29,7 @@ import { useApp } from "./provider";
 import { DataGate, HazardIcon, IncidentTable, PageTitle, relativeTime } from "./ui";
 import { IncidentMap } from "./maps/map";
 import { hazards, label } from "@/lib/domain";
+import { PublicReports } from "./public-reports";
 const chartColors = ["#D9E8E2", "#FF9932", "#a9bfb8", "#d8b58f"];
 export function Dashboard() {
   const { data, region, lastSynced } = useApp();
@@ -85,11 +88,11 @@ export function Dashboard() {
           {lastSynced ? `Synced ${relativeTime(lastSynced)}` : "Connecting…"}
         </span>
         <Link className="button primary" href="/report">
-          <MessageSquarePlus size={16} />
-          Report a hazard
+          <MessageSquarePlus size={16} /> <T text={"Report a hazard"} />{" "}
         </Link>
       </PageTitle>
       <DataGate>
+        <PublicReports />
         <div className="stats-grid">
           {[
             {
@@ -97,7 +100,9 @@ export function Dashboard() {
               value: alerts.length,
               icon: BellRing,
               color: "amber",
-              detail: "Simulated · not official warnings",
+              detail: data?.weatherFeed
+                ? "Forecast advisories · not official warnings"
+                : "Demo · not official warnings",
               caption: "ALERT CENTER",
               href: "/alerts",
             },
@@ -172,12 +177,10 @@ export function Dashboard() {
             />
             <div className="map-panel-footer">
               <span>
-                <span className="legend-dot hollow" />
-                Community report
+                <span className="legend-dot hollow" /> <T text={"Community report"} />{" "}
               </span>
               <span>
-                <span className="legend-dot teal-bg" />
-                Human reviewed
+                <span className="legend-dot teal-bg" /> <T text={"Human reviewed"} />{" "}
               </span>
               <span className="muted">Map data © OpenStreetMap</span>
             </div>
@@ -204,7 +207,15 @@ export function Dashboard() {
                       >
                         {label(alert.severity)} level
                       </span>
-                      <span className="demo-inline">DEMO</span>
+                      <span className="demo-inline">
+                        {alert.demo
+                          ? "DEMO"
+                          : alert.sourceType === "forecast"
+                            ? "FORECAST"
+                            : alert.sourceType === "authority"
+                              ? "AUTHORITY"
+                              : "OFFICIAL"}
+                      </span>
                     </div>
                     <h3>{alert.title}</h3>
                     <p>
@@ -227,7 +238,10 @@ export function Dashboard() {
           </section>
         </div>
         <details className="dashboard-details">
-          <summary>Charts and recent activity</summary>
+          <summary>
+            {" "}
+            <T text={"Charts and recent activity"} />{" "}
+          </summary>
           <div className="dashboard-lower-grid">
             <section className="panel">
               <div className="panel-heading">
@@ -337,7 +351,8 @@ export function Dashboard() {
               </span>
             </div>
             <Link className="text-link" href="/incidents">
-              View all incidents <ArrowUpRight size={14} />
+              {" "}
+              <T text={"View all incidents"} /> <ArrowUpRight size={14} />
             </Link>
           </div>
           <IncidentTable

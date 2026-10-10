@@ -1,5 +1,7 @@
+import { Translated as T } from "@/components/language";
 import Link from "next/link";
 import { ArrowRight, Languages, ShieldCheck, Workflow, MapPinned } from "lucide-react";
+import { PublicReports } from "@/components/public-reports";
 export default function Home() {
   return (
     <div className="landing">
@@ -20,7 +22,8 @@ export default function Home() {
           Open situation room <ArrowRight size={17} />
         </Link>
         <Link className="button" href="/report">
-          Report a hazard <MapPinned size={17} />
+          {" "}
+          <T text={"Report a hazard"} /> <MapPinned size={17} />
         </Link>
       </div>
       <div className="three-columns">
@@ -47,9 +50,10 @@ export default function Home() {
         </article>
       </div>
       <p className="muted small">
-        This prototype contains simulated warnings and resources. It does not contact emergency
-        services, issue official warnings, or certify travel routes.
+        Weather advisories use model forecasts; demo resources are labelled. This app does not
+        contact emergency services, issue official warnings, or certify travel routes.
       </p>
+      <PublicReports />
     </div>
   );
 }

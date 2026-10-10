@@ -1,4 +1,6 @@
 "use client";
+import { Translated as T } from "./language";
+
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -14,6 +16,7 @@ import {
 import type { Hazard, Incident, Priority, Verification } from "@/lib/domain";
 import { label } from "@/lib/domain";
 import { useApp } from "./provider";
+import { useLanguage } from "./language";
 export function HazardIcon({ hazard, size = 18 }: { hazard: Hazard; size?: number }) {
   const Icon =
     hazard === "flood"
@@ -26,17 +29,19 @@ export function HazardIcon({ hazard, size = 18 }: { hazard: Hazard; size?: numbe
   return <Icon size={size} />;
 }
 export function PriorityBadge({ value }: { value: Priority }) {
+  const { t } = useLanguage();
   return (
     <span className={`badge priority-${value}`}>
       <span className="tiny-dot" />
-      {label(value)}
+      {t(label(value))}
     </span>
   );
 }
 export function VerificationBadge({ value }: { value: Verification }) {
+  const { t } = useLanguage();
   return (
     <span className={`verification verification-${value}`}>
-      {value === "verified" ? <ShieldCheck size={13} /> : <Clock3 size={13} />} {label(value)}
+      {value === "verified" ? <ShieldCheck size={13} /> : <Clock3 size={13} />} {t(label(value))}
     </span>
   );
 }
@@ -72,12 +77,13 @@ export function PageTitle({
   description: string;
   children?: React.ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="page-title">
       <div>
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h1>{title}</h1>
-        <p>{description}</p>
+        {eyebrow && <div className="eyebrow">{t(eyebrow)}</div>}
+        <h1>{t(title)}</h1>
+        <p>{t(description)}</p>
       </div>
       <div className="page-actions">{children}</div>
     </div>
@@ -110,7 +116,10 @@ export function DataGate({ children }: { children: React.ReactNode }) {
       {error && (
         <div className="notice warning">
           Connection interrupted. Displaying the last received data.{" "}
-          <button onClick={() => void refresh()}>Retry</button>
+          <button onClick={() => void refresh()}>
+            {" "}
+            <T text={"Retry"} />{" "}
+          </button>
         </div>
       )}
       {children}
@@ -136,13 +145,33 @@ export function IncidentTable({
       <table className={compact ? "incident-table compact" : "incident-table"}>
         <thead>
           <tr>
-            <th>Incident / location</th>
-            <th>Priority</th>
-            <th>Verification</th>
-            {!compact && <th>Response</th>}
-            <th>Reported</th>
             <th>
-              <span className="sr-only">Details</span>
+              {" "}
+              <T text={"Incident / location"} />{" "}
+            </th>
+            <th>
+              {" "}
+              <T text={"Priority"} />{" "}
+            </th>
+            <th>
+              {" "}
+              <T text={"Verification"} />{" "}
+            </th>
+            {!compact && (
+              <th>
+                {" "}
+                <T text={"Response"} />{" "}
+              </th>
+            )}
+            <th>
+              {" "}
+              <T text={"Reported"} />{" "}
+            </th>
+            <th>
+              <span className="sr-only">
+                {" "}
+                <T text={"Details"} />{" "}
+              </span>
             </th>
           </tr>
         </thead>

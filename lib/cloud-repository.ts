@@ -10,6 +10,9 @@ import {
 import { assessIntake, imageDigest } from "./intake";
 import { createSeed } from "./seed";
 import { rpc, supabaseRequest, SupabaseError } from "./supabase";
+import { applyReliefUpdate, applyAuthorityAdvisory } from "./relief";
+import type { AuthorityAdvisoryInput } from "./domain";
+import type { ReliefUpdateInput } from "./domain";
 
 interface VersionedState {
   version: number;
@@ -42,6 +45,34 @@ export async function cloudSnapshot() {
     ...current.payload,
     aiMode: process.env.AI_MODE === "live" ? ("live" as const) : ("demo" as const),
   };
+}
+export async function cloudSaveReliefUpdate(input: ReliefUpdateInput, actor: string) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const current = await state();
+    const next = applyReliefUpdate(current.payload, input, actor);
+    try {
+      await commit(current);
+      return next;
+    } catch (error) {
+      if (conflict(error)) continue;
+      throw error;
+    }
+  }
+  throw new Error("Shared relief data changed repeatedly. Please refresh and retry.");
+}
+export async function cloudSaveAuthorityAdvisory(input: AuthorityAdvisoryInput, actor: string) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const current = await state();
+    const next = applyAuthorityAdvisory(current.payload, input, actor);
+    try {
+      await commit(current);
+      return next;
+    } catch (error) {
+      if (conflict(error)) continue;
+      throw error;
+    }
+  }
+  throw new Error("Shared advisory data changed repeatedly. Refresh and retry.");
 }
 function conflict(error: unknown) {
   return error instanceof SupabaseError && error.code === "40001";
@@ -201,13 +232,24 @@ export async function cloudUpdate(id: string, action: IncidentAction, actor: str
       current.payload.teams.map((t) => t.id),
     );
     next.history[next.history.length - 1].actor = actor;
-    if (["review", "verify"].includes(action.action))
+    if (
+      ["review", "verify"].includes(action.action) ||
+      (action.action === "override" && action.verification === "verified")
+    )
       next.reports = next.reports.map((r) =>
         r.analysisState === "held" ? { ...r, analysisState: "pending" } : r,
       );
     current.payload.incidents[index] = next;
     try {
-      await commit(current, { job_action: { incident_id: id, action: action.action } });
+      await commit(current, {
+        job_action: {
+          incident_id: id,
+          action:
+            action.action === "override" && action.verification === "verified"
+              ? "verify"
+              : action.action,
+        },
+      });
       return next;
     } catch (error) {
       if (conflict(error)) continue;
