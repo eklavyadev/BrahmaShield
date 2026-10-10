@@ -344,7 +344,7 @@ export function IncidentDetail({ id }: { id: string }) {
                 {!responder ? (
                   <div className="locked-state">
                     <LockKeyhole size={25} />
-                    <p>Use the Observer control in the top bar to sign in as a responder.</p>
+                    <p>Evidence and response actions are available only to authorized responders.</p>
                     <small>Review and response changes are protected on the server.</small>
                   </div>
                 ) : (

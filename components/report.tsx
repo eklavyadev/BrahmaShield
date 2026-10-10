@@ -606,7 +606,7 @@ export function ReportPage() {
             </p>
             <p>
               Describe assistance needs without identifying vulnerable individuals. Attachments are
-              visible only to signed-in responders.
+              visible only to authorized responders.
             </p>
             <p className="small amber">
               This platform does not arrange rescue. Follow official emergency channels and local
